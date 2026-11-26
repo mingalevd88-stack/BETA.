@@ -577,15 +577,15 @@ function idBindSlider(input){
  const shell=document.createElement('div');shell.className='id-slider';const rail=document.createElement('div');rail.className='id-rail';rail.setAttribute('aria-hidden','true');rail.innerHTML='<span class="id-fill"></span><span class="id-knob"></span>';
  input.before(shell);shell.append(input,rail);
  const min=Number(input.min||0),max=Number(input.max||100),step=Number(input.step)||1;
- let pointer=null,rect=null,fraction=0,pending=0,frame=0;
+ let pointer=null,rect=null,fraction=0,pending=0,frame=0,startX=0,startY=0,dragging=false;
  const fill=rail.firstElementChild,knob=rail.lastElementChild;
  function paint(f,width){knob.style.left='0';fill.style.transform='scaleX('+f+')';knob.style.transform='translate3d('+(f*width-13)+'px,-13px,0)'}
  function showValue(v){const out=input.parentElement.parentElement.querySelector('output');if(out){const k=input.dataset.idSetting||input.dataset.setting;out.textContent=v+({idScale:'%',idGlass:'%',idDuration:' мс',glow:'%',wallDark:'%'}[k]||' px')}}
  function sync(){const f=Math.max(0,Math.min(1,(Number(input.value)-min)/(max-min||1)));fill.style.transform='scaleX('+f+')';knob.style.left=(f*100)+'%';knob.style.transform='translate3d(-13px,-13px,0)'}
  function update(e){if(!rect||rect.width<=0)return;fraction=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));pending=Math.max(min,Math.min(max,min+Math.round((max-min)*fraction/step)*step));if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(rect){paint(fraction,rect.width);showValue(pending)}})}
- shell.addEventListener('pointerdown',e=>{if(pointer!==null||!e.isPrimary||e.button!==0||input.disabled)return;pointer=e.pointerId;rect=rail.getBoundingClientRect();pending=Number(input.value);shell.setPointerCapture(pointer);shell.classList.add('dragging');knob.style.left='0';update(e)});
- shell.addEventListener('pointermove',e=>{if(e.pointerId===pointer)update(e)});
- function finish(e,commit){if(e.pointerId!==pointer)return;if(commit)update(e);if(frame){cancelAnimationFrame(frame);frame=0}const v=pending;pointer=null;rect=null;shell.classList.remove('dragging');if(commit){input.value=String(v);input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}))}sync();showValue(input.value)}
+ shell.addEventListener('pointerdown',e=>{if(pointer!==null||!e.isPrimary||e.button!==0||input.disabled)return;pointer=e.pointerId;rect=rail.getBoundingClientRect();pending=Number(input.value);startX=e.clientX;startY=e.clientY;dragging=false;shell.setPointerCapture(pointer)});
+ shell.addEventListener('pointermove',e=>{if(e.pointerId!==pointer)return;if(!dragging){const dx=Math.abs(e.clientX-startX),dy=Math.abs(e.clientY-startY);if(dy>8&&dy>dx){finish(e,false);return}if(dx<5)return;dragging=true;shell.classList.add('dragging')}update(e)});
+ function finish(e,commit){if(e.pointerId!==pointer)return;if(commit)update(e);if(frame){cancelAnimationFrame(frame);frame=0}const v=pending;pointer=null;rect=null;dragging=false;shell.classList.remove('dragging');if(commit){input.value=String(v);input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}))}sync();showValue(input.value);if(shell.hasPointerCapture(e.pointerId))shell.releasePointerCapture(e.pointerId)}
  shell.addEventListener('pointerup',e=>finish(e,true));shell.addEventListener('pointercancel',e=>finish(e,false));shell.addEventListener('lostpointercapture',e=>finish(e,false));
  input.addEventListener('input',sync);input.addEventListener('change',sync);
  // Percentage-based positioning survives responsive layout changes without observing every slider.
