@@ -1,0 +1,1517 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><title>BETA LIQUID · v40 + выбор с прослушиванием</title><style>
+html,body{margin:0;background:#030405;color:#e8e9ed;font-family:system-ui,-apple-system,sans-serif;height:100%;overflow:hidden}*{box-sizing:border-box}#betaTrios{width:100%;height:100%;min-height:380px;position:relative;isolation:isolate;background:#030405;overflow:hidden;touch-action:none;user-select:none}#betaTrios canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}#betaTrios canvas:active{cursor:grabbing}.wordmark{position:absolute;top:6.2%;width:100%;text-align:center;pointer-events:none;letter-spacing:.48em;font-size:clamp(10px,1.3vw,13px);font-weight:650;color:#dce1eb}.underword{position:absolute;top:10%;width:100%;text-align:center;pointer-events:none;letter-spacing:.25em;font-size:9px;color:#777f8d;opacity:.85}.hint{position:absolute;bottom:6.2%;left:5%;width:90%;text-align:center;pointer-events:none;letter-spacing:.04em;font-size:11px;color:#898f9a;line-height:1.65;transition:opacity .25s}.focusLabel{position:absolute;left:0;top:0;pointer-events:none;transform:translate(-50%,-50%);text-align:center;opacity:0;transition:opacity .26s;white-space:nowrap;z-index:2}.focusLabel .main{font-size:clamp(11px,2.7vw,14px);font-weight:630;letter-spacing:.3em;color:#f0f0f2;text-shadow:0 2px 16px #000,0 0 16px #000}.focusLabel .sub{font-size:10px;letter-spacing:.07em;margin-top:8px;color:#969fab;text-shadow:0 2px 10px #000}.actions{position:absolute;bottom:15%;left:50%;transform:translateX(-50%);display:none;gap:8px;align-items:center;z-index:4;white-space:nowrap}.actions button{background:#12151b;color:#e9ebee;border:1px solid #646b77;border-radius:999px;padding:10px 16px;font:12px system-ui;cursor:pointer}.actions .secondary{background:#08090d;color:#afb3bf;border-color:#3a3d46}.error{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:24px;background:#050507;color:#d8dce0;font-size:13px;line-height:1.6}
+
+/* Additional interface only: original v31 WebGL program, particles and motion unchanged. */
+#betaTrios{height:100dvh;min-height:440px}
+#betaTrios .wordmark{z-index:5}#betaTrios .underword{z-index:5}
+#betaTrios.immersed .underword{font-size:9px;letter-spacing:.2em;color:#a1a7b0}
+#betaTrios.immersed .focusLabel{z-index:8}
+#betaTrios .droplet-tags{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+#betaTrios .tag{position:absolute;left:0;top:0;display:flex;align-items:center;gap:8px;max-width:min(186px,38vw);border:1px solid #5a626c9c;background:linear-gradient(180deg,#252d37d9,#0a0d13d9);box-shadow:inset 0 1px 0 #ffffff18,0 4px 18px #0009;color:#edf0f5;border-radius:100px;padding:8px 11px 8px 9px;font:600 12px/1 system-ui;cursor:pointer;pointer-events:auto;white-space:nowrap;backdrop-filter:blur(8px);will-change:transform,opacity;transition:border-color .2s,box-shadow .2s,background-color .2s;user-select:none;touch-action:manipulation}
+#betaTrios .tag:focus-visible{outline:2px solid #cfdcef;outline-offset:3px}
+#betaTrios .tag .tag-name{overflow:hidden;text-overflow:ellipsis}
+#betaTrios .tag .dot{width:12px;height:12px;flex-shrink:0;border-radius:50%;background:var(--dot,#8792ad);box-shadow:0 0 13px var(--dot,#8792ad);border:1px solid #ffffff66}
+#betaTrios .tag .music-ico{font-size:12px;flex:none;color:#e7e9ef}
+#betaTrios .tag .artist-ico{display:grid;place-items:center;width:20px;height:20px;flex:none;border-radius:100%;font-size:10px;background:linear-gradient(140deg,#764eb8,#c04f74)}
+#betaTrios .tag[data-type="mood"]{border-color:#5a64749e}
+#betaTrios .tag[data-type="track"]{border-color:#51647695;background:linear-gradient(180deg,#192430e0,#0a0f17da)}
+#betaTrios .tag[data-type="artist"]{border-color:#755c748f}
+
+#betaTrios .tag.is-selected{border-color:#c5dbcc;box-shadow:0 0 0 1px #c0f3d552,0 0 23px #80d7a02b,inset 0 1px 0 #fff4;color:#fff}
+#betaTrios .tag.is-saved:not(.is-focus){border-color:#a5c9b3;box-shadow:0 0 0 1px #97cdae50,0 0 20px #80d7a01e,inset 0 1px 0 #fff3}#betaTrios .tag.is-focus{border-color:#e4e9f4;box-shadow:0 0 0 1px #d2e3fa77,0 0 36px #97b6fa4d;background:linear-gradient(180deg,#374152f3,#111823f3);z-index:30}
+#betaTrios .top-status{position:absolute;left:50%;top:15%;transform:translateX(-50%);font:10px/1.4 system-ui;color:#9daab9;letter-spacing:.04em;white-space:nowrap;pointer-events:none;z-index:5;display:none;text-shadow:0 1px 10px #000}
+#betaTrios.immersed .top-status{display:block}
+#betaTrios .chosen-strip{display:flex;gap:6px;overflow-x:auto;min-height:0;max-width:100%;scrollbar-width:none;padding:0 3px}
+#betaTrios .chosen-strip button{color:#d7f5e3;border:1px solid #4e7361;background:#14221bdc;padding:6px 10px;font:10px system-ui;border-radius:18px;flex-shrink:0;cursor:pointer}
+#betaTrios .scene-search{position:absolute;left:50%;bottom:5.6%;transform:translateX(-50%);z-index:12;display:none;width:min(520px,calc(100% - 28px));user-select:auto}
+#betaTrios.immersed .scene-search{display:block}
+#betaTrios .searchbar{display:flex;align-items:center;gap:8px;border:1px solid #596574ad;border-radius:40px;background:#10151cf2;backdrop-filter:blur(15px);box-shadow:0 13px 40px #000b;padding:1px 6px 1px 14px}
+#betaTrios .searchbar svg{width:16px;height:16px;flex:none;fill:none;stroke:#aeb9c5;stroke-width:2}
+#betaTrios .searchbar input{border:0;outline:0;background:none;color:#f4f5f8;font:13px system-ui;width:100%;min-width:0;padding:12px 0;user-select:text;touch-action:auto}
+#betaTrios .searchbar input::placeholder{color:#8d98a7}
+#betaTrios .searchbar button{border:0;background:transparent;color:#a9b4bf;font:22px system-ui;cursor:pointer;padding:4px 8px}
+#betaTrios .results{position:absolute;bottom:calc(100% + 8px);left:0;right:0;display:none;flex-direction:column;gap:2px;border:1px solid #586371;background:#0c121bfa;box-shadow:0 16px 50px #000d;border-radius:14px;padding:5px;max-height:225px;overflow:auto}
+#betaTrios .results button{display:flex;justify-content:space-between;align-items:center;gap:8px;border:0;border-radius:9px;background:transparent;color:#eef1f5;text-align:left;padding:10px;font:12px system-ui;cursor:pointer}
+#betaTrios .results button:hover{background:#222d38}
+#betaTrios .results small{font:10px system-ui;color:#8995a4;white-space:nowrap}
+#betaTrios .more{position:absolute;bottom:24%;right:5%;z-index:5;display:none;border:1px dashed #66717fa8;background:#141a23dc;color:#dae0e8;border-radius:30px;padding:10px 14px;font:11px system-ui;cursor:pointer}
+#betaTrios.immersed .more{display:block}
+#betaTrios.immersed .actions{bottom:17%;display:flex!important;z-index:9}
+#betaTrios.immersed .actions button{font-size:11px;padding:9px 14px}
+#betaTrios.immersed .hint{bottom:1.3%;font-size:9px;opacity:.7}
+#betaTrios .substatus{position:absolute;left:5%;bottom:28%;z-index:4;color:#c0c6d1;font:11px system-ui;text-shadow:0 2px 10px #000;pointer-events:none;max-width:45%}
+#betaTrios .substatus:empty{display:none}
+@media(max-width:620px){#betaTrios .tag{font-size:10px;padding:8px 9px 8px 8px;max-width:40vw;gap:5px}#betaTrios .tag .dot{width:10px;height:10px}#betaTrios .tag .artist-ico{width:16px;height:16px;font-size:9px}#betaTrios .top-status{top:14%;font-size:9px;white-space:normal;text-align:center;max-width:90%}#betaTrios .actions{gap:5px}#betaTrios.immersed .actions{bottom:17.5%}#betaTrios.immersed .actions button{font-size:10px;padding:9px 11px}#betaTrios .more{right:4%;bottom:27%;padding:8px 10px}#betaTrios .substatus{bottom:29%;left:4%;font-size:10px;max-width:47%}}
+
+.no-results{display:block;color:#a2adbc;font:12px/1.5 system-ui;padding:12px}.tag[data-type="mood"] .dot{box-shadow:0 0 9px var(--dot),inset 0 0 2px #fff}.tag:active{filter:brightness(1.2)}#betaTrios .actions .more{position:static;right:auto;bottom:auto;background:#12151b;color:#c9d0db;white-space:nowrap}#betaTrios.immersed .substatus{display:none}@media(max-width:620px){#betaTrios .actions .more{padding:9px 10px}}
+
+#betaTrios.previewing .scene-search .searchbar{opacity:0;pointer-events:none}
+/* v41: feedback from friends. Pure UI overlay; metal shader and particle physics stay untouched. */
+#betaTrios .beta-preview{position:absolute;z-index:22;left:50%;bottom:5.6%;transform:translateX(-50%);width:min(354px,calc(100% - 24px));display:none;align-items:center;gap:10px;padding:10px 12px;border:1px solid #73819095;border-radius:17px;background:linear-gradient(145deg,#19212adf,#090c11f3);box-shadow:0 15px 40px #000b,inset 0 1px 0 #ffffff25;backdrop-filter:blur(20px);color:#eef1f5;touch-action:auto}
+#betaTrios .beta-preview.open{display:flex;animation:betaPreviewIn .28s ease-out both}
+@keyframes betaPreviewIn{from{opacity:0;transform:translate(-50%,9px) scale(.97)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+#betaTrios .beta-preview .preview-toggle{border:1px solid #92a1af88;background:linear-gradient(145deg,#3e5366,#111923);border-radius:50%;height:36px;width:36px;min-width:36px;color:#fff;font-size:15px;cursor:pointer;display:grid;place-items:center}
+#betaTrios .beta-preview .preview-toggle:disabled{opacity:.43;cursor:wait}
+#betaTrios .preview-info{min-width:0;flex:1}
+#betaTrios .preview-title{font-size:11px;font-weight:660;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#betaTrios .preview-note{font-size:10px;color:#a1aeba;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#betaTrios .preview-progress{height:2px;border-radius:2px;background:#59657362;margin-top:6px;overflow:hidden}
+#betaTrios .preview-progress>i{display:block;height:100%;width:0;background:#b7e7dd;transition:width .15s linear}
+#betaTrios .preview-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex:none}
+#betaTrios .preview-link{color:#a7ddcc;text-decoration:none;font:9px/1.25 system-ui;max-width:84px;text-align:right}
+#betaTrios .preview-close{border:0;background:transparent;color:#a6b1bf;font-size:16px;line-height:18px;cursor:pointer;padding:0 3px}
+#betaTrios .artist-detail{position:absolute;z-index:33;display:none;width:min(330px,calc(100% - 28px));max-height:min(322px,59dvh);overflow-y:auto;border:1px solid #6b7481a6;border-radius:19px;background:linear-gradient(152deg,#242e3af7,#090c12fa 66%);box-shadow:0 25px 75px #000d,inset 0 1px 0 #ffffff20;backdrop-filter:blur(24px);padding:16px;touch-action:pan-y;user-select:auto}
+#betaTrios .artist-detail.open{display:block;animation:betaCardIn .22s ease-out}
+@keyframes betaCardIn{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+#betaTrios .artist-detail header{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+#betaTrios .artist-detail .artist-avatar{width:44px;height:44px;flex:none;display:grid;place-items:center;border:1px solid #a9b1c474;border-radius:50%;background:radial-gradient(circle at 35% 22%,#9babc2,#27313d 40%,#0b0e13 78%);box-shadow:inset 0 1px 0 #ffffff8c;font:650 19px system-ui;color:#e3e7ec}
+#betaTrios .artist-detail .artist-h{flex:1;min-width:0}
+#betaTrios .artist-detail .artist-h b{display:block;font:680 15px/1.2 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#betaTrios .artist-detail .artist-h small{color:#a5b0be;font:10px system-ui}
+#betaTrios .artist-detail .artist-x{border:0;background:#ffffff14;color:#d2d9e1;width:26px;height:26px;border-radius:50%;font-size:17px;cursor:pointer;align-self:flex-start}
+#betaTrios .artist-detail .hits-title{font:650 10px system-ui;letter-spacing:.12em;text-transform:uppercase;color:#a9b5c2;margin-bottom:8px}
+#betaTrios .artist-detail .hit-row{display:flex;align-items:center;gap:10px;width:100%;min-height:39px;padding:8px 7px;border:0;border-bottom:1px solid #ffffff14;background:none;color:#e8ebef;text-align:left;cursor:pointer}
+#betaTrios .artist-detail .hit-row:last-of-type{border-bottom:0}
+#betaTrios .artist-detail .hit-n{color:#8091a6;width:13px;flex:none;font:11px system-ui}
+#betaTrios .artist-detail .hit-name{flex:1;font:12px/1.3 system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#betaTrios .artist-detail .hit-play{font:11px system-ui;color:#aedacc;white-space:nowrap}
+#betaTrios .artist-detail .artist-tip{font:10px/1.45 system-ui;color:#8895a5;margin-top:10px}
+#betaTrios .tag[data-type='artist']{touch-action:pan-x pan-y;-webkit-touch-callout:none}
+#betaTrios .chosen-strip button{touch-action:pan-x pan-y}
+@media(max-width:620px){#betaTrios .beta-preview{bottom:5.6%;padding:7px 10px}#betaTrios .artist-detail{max-height:50dvh}}
+
+/* Beta music discovery: links to legal SoundCloud search, not unlicensed audio streams */
+#betaTrios .preview-soundcloud{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:#f1f2f7;font-size:10px;padding:6px 7px;border:1px solid #525460;border-radius:15px;white-space:nowrap;background:#21232b;}
+#betaTrios .artist-soundcloud{display:inline-block;color:#c1c5d3;text-decoration:none;font:500 10px system-ui;margin-left:8px;max-width:130px;vertical-align:middle;}
+
+/* 2026 indie discovery & mobile touch fixes — original 3D shader untouched. */
+#betaTrios *,#betaTrios *::before,#betaTrios *::after{-webkit-tap-highlight-color:transparent;}
+#betaTrios button{-webkit-appearance:none;appearance:none;outline:none;}
+#betaTrios button:focus-visible,#betaTrios [role=button]:focus-visible{outline:2px solid #cad6e5;outline-offset:2px;}
+#betaTrios .saved-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 3px 5px;min-height:26px;touch-action:auto;}
+#betaTrios .saved-caption{font:600 9px/1 system-ui;letter-spacing:.1em;color:#b3c3d2;white-space:nowrap;}
+#betaTrios .saved-caption b{font-variant-numeric:tabular-nums;color:#e7ecef;}
+#betaTrios .saved-scroll{display:flex;align-items:center;gap:7px;}
+#betaTrios .saved-scroll button{border:1px solid #637181a8;background:#202b37e0;color:#e2e8f0;width:27px;height:24px;line-height:1;border-radius:10px;padding:0;font:18px system-ui;}
+#betaTrios .saved-scroll button:disabled{opacity:.25;}
+#betaTrios .chosen-strip{min-height:39px;max-width:100%;padding:2px 3px 4px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;overscroll-behavior-x:contain;touch-action:pan-x;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#67798955 transparent;}
+#betaTrios .saved-pill{display:flex;align-items:center;gap:0;max-width:200px;flex:none;white-space:nowrap;border:1px solid #628075b0;background:linear-gradient(150deg,#20302bf0,#10191afb);border-radius:25px;scroll-snap-align:start;overflow:hidden;}
+#betaTrios .chosen-strip .saved-pill button{border:0;border-radius:0;background:transparent;color:#d5e9df;min-height:31px;touch-action:pan-x;font-size:10px;}
+#betaTrios .chosen-strip .saved-pill .saved-open{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0;max-width:151px;text-align:left;padding:7px 6px 7px 10px;}
+#betaTrios .chosen-strip .saved-pill .saved-open:active{background:#ffffff12;}
+#betaTrios .chosen-strip .saved-pill .saved-remove{font-size:16px;width:31px;padding:5px 8px;border-left:1px solid #6781734d;color:#cdd8d5;flex:none;}
+#betaTrios .chosen-strip .saved-pill .saved-remove:active{background:#a6444544;color:#fff;}
+#betaTrios .preview-info{cursor:pointer;touch-action:manipulation;padding:3px 1px;}
+#betaTrios .preview-title::after{content:'  ↗';font-size:12px;color:#aec9da;}
+#betaTrios .preview-info:active .preview-title{color:#d4eee9;}
+#betaTrios .beta-preview .preview-toggle{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;transform:translateZ(0);backface-visibility:hidden;outline:0!important;}
+#betaTrios .track-detail{position:absolute;z-index:32;left:50%;bottom:calc(5.6% + 75px);transform:translateX(-50%);width:min(355px,calc(100% - 24px));max-height:min(360px,57dvh);overflow-y:auto;display:none;padding:15px;border-radius:18px;background:linear-gradient(150deg,#24303af9,#0a0e14f9 69%);border:1px solid #7585959a;box-shadow:0 23px 62px #000e,inset 0 1px #ffffff25;backdrop-filter:blur(20px);touch-action:pan-y;user-select:auto;}
+#betaTrios .track-detail.open{display:block;animation:betaTrackIn .24s ease-out both;}
+@keyframes betaTrackIn{from{opacity:0;translate:0 9px}to{opacity:1;translate:0 0}}
+#betaTrios .track-head{display:flex;align-items:center;justify-content:space-between;}
+#betaTrios .track-eyebrow,#betaTrios .track-similar-title{font:650 9px/1.5 system-ui;letter-spacing:.13em;color:#a2b8c8;}
+#betaTrios .track-x{border:none;background:#303c46;color:#ecf0f5;border-radius:50%;width:27px;height:27px;font-size:17px;cursor:pointer;}
+#betaTrios .track-heading{font:680 17px/1.3 system-ui;color:#eff2f5;margin:7px 0 9px;white-space:normal;}
+#betaTrios .track-artist-btn{display:block;width:100%;text-align:left;border:1px solid #637b87ab;border-radius:11px;background:#20303ba8;padding:10px;color:#dceaf2;font:600 12px system-ui;margin-bottom:16px;cursor:pointer;}
+#betaTrios .track-sim-row{display:flex;gap:7px;align-items:stretch;border-bottom:1px solid #ffffff12;}
+#betaTrios .track-sim-row:last-child{border-bottom:0;}
+#betaTrios .track-sim-open{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;flex:1;min-width:0;padding:9px 6px;border:0;background:transparent;color:#f0f3f5;cursor:pointer;font:12px/1.4 system-ui;text-align:left;}
+#betaTrios .track-sim-open span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+#betaTrios .track-sim-open small{color:#a0abb9;font:10px system-ui;margin-top:2px;}
+#betaTrios .track-sim-add{border:1px solid #738a89;background:#26383b;color:#cfe6e0;border-radius:10px;margin:auto 0;min-width:30px;height:29px;font:18px/1 system-ui;cursor:pointer;}
+#betaTrios .track-footnote{font:10px/1.5 system-ui;color:#899cab;margin-top:10px;}
+#betaTrios .artist-detail{z-index:38;}
+@media(max-width:620px){#betaTrios .scene-search{bottom:5.2%;}#betaTrios .track-detail{bottom:calc(5.2% + 78px);max-height:53dvh;}#betaTrios .saved-pill{max-width:170px;}#betaTrios .chosen-strip .saved-pill .saved-open{max-width:127px;}#betaTrios.previewing .saved-controls,#betaTrios.previewing .chosen-strip{opacity:.22;pointer-events:none;}}
+/* Faster mobile tag compositing: same dark glass colors, no costly per-pill backdrop blur over moving WebGL. */
+@media(max-width:870px){#betaTrios .tag{backdrop-filter:none;background:linear-gradient(180deg,#252d37f5,#0a0d13f4)}#betaTrios .tag[data-type="track"]{background:linear-gradient(180deg,#192430f5,#0a0f17f4)}}
+
+/* Living Music — search surface, only UI. */
+#betaTrios .scene-search{width:min(560px,calc(100% - 24px));bottom:max(4.5%,env(safe-area-inset-bottom));isolation:isolate;touch-action:pan-y;color:#f1f3f7}
+#betaTrios.immersed .scene-search{display:flex;flex-direction:column;gap:4px}
+#betaTrios .scene-search:before{content:"";position:absolute;inset:-9px -5px -5px;z-index:-1;border-radius:33px 33px 27px 27px;background:radial-gradient(ellipse at 9% 0%,#8ca6c334,transparent 52%),linear-gradient(155deg,#131b25f2,#06090ef0 55%,#161e28ed);border:1px solid #b5c8de45;box-shadow:0 12px 35px #0009,inset 0 1px 0 #e7f2ff32,inset 0 -1px 0 #9ebcdb38;pointer-events:none;opacity:0;transition:opacity .28s}
+#betaTrios .scene-search:has(.results[style*="flex"]):before{opacity:1}
+#betaTrios .scene-search .searchbar{order:0;min-height:48px;position:relative;overflow:hidden;border-radius:48% 52% 47% 53% / 78% 72% 28% 22%;border:1px solid #aebed68c;box-shadow:inset 0 1px 2px #e5efff65,inset 0 -2px 6px #9fb6da25,0 5px 25px #0009;background:radial-gradient(ellipse at 18% 0%,#a8c0df42,transparent 46%),radial-gradient(ellipse at 90% 100%,#7d9cbe38,transparent 45%),linear-gradient(155deg,#273543e8,#0b1119f7 54%,#263341dc);backdrop-filter:none;padding:0 6px 0 18px;transition:border-radius .25s,box-shadow .25s}
+#betaTrios .scene-search .searchbar:focus-within{border-radius:26px;border-color:#d6e5f1c0;box-shadow:inset 0 1px 2px #e5efff55,0 0 16px #a0bdd82c,0 8px 26px #0008}
+#betaTrios .scene-search .searchbar input{font-size:16px;min-height:46px;padding:10px 0;color:#f3f6fb}
+#betaTrios .scene-search .searchbar input::-webkit-search-cancel-button{appearance:none}
+#betaTrios .scene-search .searchbar input::placeholder{font-size:13px;color:#b1bfce}
+#betaTrios .scene-search .searchbar button{min-width:44px;min-height:44px;color:#d0dce9}
+#betaTrios .scene-search .saved-controls{order:-2;padding:0 7px;min-height:24px}
+#betaTrios .scene-search .chosen-strip{order:-1;min-height:0;padding:2px 4px;gap:5px}
+#betaTrios .scene-search .chosen-strip:empty{display:none}
+#betaTrios .scene-search .saved-pill{border-color:#a7bac66b;background:linear-gradient(150deg,#2c3846e8,#101720f4)}
+#betaTrios .scene-search .saved-pill button{color:#e0e7f1}
+#betaTrios .scene-search .saved-scroll button{border-color:#a6bad44d;background:#131d27df}
+#betaTrios .scene-search .results{order:1;position:relative;inset:auto;gap:5px;padding:6px 2px 3px;border:0;border-radius:0;background:transparent;box-shadow:none;max-height:min(34dvh,260px,var(--liquid-search-available,260px));overflow:auto;overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:#879ab25c transparent;animation:livingReveal .27s cubic-bezier(.2,.8,.2,1) both}
+#betaTrios .scene-search:has(.results[style*="flex"]){padding:8px 6px 4px}
+#betaTrios .scene-search:has(.results[style*="flex"]) .searchbar{order:-3;border-radius:24px}
+#betaTrios .scene-search:has(.results[style*="flex"]) .saved-controls{order:2}
+#betaTrios .scene-search:has(.results[style*="flex"]) .chosen-strip{order:3}
+#betaTrios .liquid-result-row{display:flex;align-items:center;gap:4px;min-height:54px;padding:3px 4px;border-radius:23px;border:1px solid #a6bbd12b;background:radial-gradient(ellipse at 12% 0%,#9fb5cf26,transparent 50%),linear-gradient(155deg,#1d2937f2,#0e141def 65%,#263343e6);box-shadow:inset 0 1px 0 #dceaff24;flex:none;animation:livingReveal .34s cubic-bezier(.15,.75,.22,1) both;animation-delay:calc(var(--result-index,0)*28ms)}
+#betaTrios .liquid-result-row.is-picked{border-color:#c3d6e4a8}
+#betaTrios .results .liquid-result-open{display:flex;justify-content:flex-start;align-items:center;flex:1;min-width:0;gap:9px;padding:4px 5px;border-radius:20px;min-height:44px}
+#betaTrios .liquid-result-icon{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;color:#e3edf8;font-size:15px;background:radial-gradient(circle at 30% 16%,#c4d2e8a8,#37485d 30%,#0a111b 67%,#637b97 100%);box-shadow:inset 0 1px 2px #fff5;border:1px solid #a3b6d160}
+#betaTrios .liquid-result-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px;text-align:left}
+#betaTrios .liquid-result-copy span,#betaTrios .liquid-result-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+#betaTrios .liquid-result-copy span{font-size:13px;color:#edf2f7}
+#betaTrios .liquid-result-copy small{font-size:11px;color:#aab8ca}
+#betaTrios .liquid-result-arrow{color:#a7b9cd;font-size:17px}
+#betaTrios .results .liquid-result-pick{display:grid;place-items:center;width:44px;height:44px;flex:none;padding:0;border:1px solid #c5d6e644;border-radius:50%;color:#eaf1f8;background:radial-gradient(circle at 30% 10%,#a1b6ce37,transparent 55%),#1a2532;font-size:20px}
+#betaTrios .results .liquid-result-pick[aria-pressed="true"]{background:#a9bdd333;color:#f4f8ff;border-color:#d1e2f0a8}
+#betaTrios .results .no-results{color:#c2cedd;padding:12px 8px}
+#betaTrios .tag .artist-ico{background:radial-gradient(circle at 32% 20%,#c2d0e0,#384858 40%,#101722 76%);color:#e8eef5}
+#betaTrios .tag.is-selected,#betaTrios .tag.is-saved:not(.is-focus){border-color:#c2d1e1;box-shadow:0 0 0 1px #b5c5d43d,0 0 16px #b6c8df28,inset 0 1px 0 #fff3}
+#betaTrios .tag[data-type="mood"] .dot{background:#a6b6c9;box-shadow:0 0 7px #b5c7dc65,inset 0 0 2px #fff}
+@keyframes livingReveal{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-height:520px){#betaTrios .scene-search .results{max-height:min(26dvh,140px,var(--liquid-search-available,140px))}}
+@media(prefers-reduced-motion:reduce){#betaTrios .scene-search:before,#betaTrios .scene-search .searchbar,#betaTrios .scene-search .results,#betaTrios .liquid-result-row{animation:none;transition:none}}
+
+</style></head><body><div id="betaTrios"><canvas aria-label="Три интерактивных жидкометаллических ядра"></canvas><div class="droplet-tags" aria-label="Настроения, треки и исполнители"></div><div class="top-status" aria-live="polite"></div><div class="substatus" aria-live="polite"></div><button class="more" type="button">Ещё ↻</button><div class="scene-search"><div class="chosen-strip"></div><div class="results" role="group" aria-label="Результаты поиска"></div><div class="searchbar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input type="search" placeholder="Найти в своём мире…" autocomplete="off" aria-label="Поиск по музыкальному миру"><button type="button" aria-label="Очистить поиск">×</button></div></div><div class="wordmark">BETA LIQUID</div><div class="underword">CLEAN MERGE · V31 · MOOD JOURNEY · FRIENDS EDITION</div><div class="focusLabel"><div class="main"></div><div class="sub">Нажми ещё раз, чтобы разрушить</div></div><div class="actions"><button class="gather">Собрать ядра</button><button class="secondary restart">Начать заново</button></div><div class="hint">Коснись ядра, чтобы узнать его название<br>Перемещай ядра — металл перетекает и колышется</div><div class="error"></div></div>
+<script>
+(()=>{'use strict';
+const root=document.getElementById('betaTrios'),cv=root.querySelector('canvas'),label=root.querySelector('.focusLabel'),labelMain=label.querySelector('.main'),hint=root.querySelector('.hint'),actions=root.querySelector('.actions'),gatherBtn=root.querySelector('.gather'),restartBtn=root.querySelector('.restart'),error=root.querySelector('.error');
+const gl=cv.getContext('webgl',{alpha:false,antialias:false,powerPreference:'default'});
+if(!gl){error.style.display='grid';error.textContent='Для этой демонстрации нужен WebGL. Попробуй Chrome с включённым аппаратным ускорением.';return}
+const P=gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER,gl.HIGH_FLOAT)?.precision>0?'highp':'mediump';
+const C=(x,a,b)=>Math.max(a,Math.min(b,x)),M=(a,b,k)=>a+(b-a)*k,S=x=>{x=C(x,0,1);return x*x*(3-2*x)};
+let seed=923881;const rand=(a=0,b=1)=>{seed=(Math.imul(1664525,seed)+1013904223)>>>0;return a+(seed/4294967296)*(b-a)};
+const V=Math.PI*2;
+function shader(t,str){const s=gl.createShader(t);gl.shaderSource(s,str);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s}
+function prog(a,b){const p=gl.createProgram();gl.attachShader(p,shader(gl.VERTEX_SHADER,a));gl.attachShader(p,shader(gl.FRAGMENT_SHADER,b));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));return p}
+try{
+const fieldVS=`attribute vec2 pos,tc;attribute float mass;varying vec2 v;varying float vm;uniform vec2 screen;void main(){v=tc;vm=mass;gl_Position=vec4(pos.x/screen.x*2.-1.,1.-pos.y/screen.y*2.,0.,1.);}`;
+const fieldFS=`precision ${P} float;varying vec2 v;varying float vm;uniform float gain;void main(){float k=max(0.,1.-dot(v,v));float d=k*k*vm;gl_FragColor=vec4(d*gain,d,0.,d);}`;
+const screenVS=`attribute vec2 pos;varying vec2 uv;void main(){uv=(pos+1.)*.5;gl_Position=vec4(pos,0.,1.);}`;
+const screenFS=`precision ${P} float;
+varying vec2 uv;
+uniform sampler2D field;
+uniform samplerCube env;
+uniform sampler2D surface;
+uniform vec2 screen,texel;
+uniform vec4 cores[3];
+uniform vec2 dirs[3];
+uniform vec4 flexes[3];
+uniform vec3 bonds;
+uniform float baseR,gain,pixel,hasFluid;
+float smoothUnion(float a,float b,float k){
+ float h=max(0.,k-abs(a-b))/max(.001,k);
+ return min(a,b)-h*h*k*.25;
+}
+float density(vec2 p){
+ vec2 d=texture2D(field,clamp(p,0.,1.)).rg;
+ return mix(d.r/gain,d.g,smoothstep(.75,.97,d.r))*hasFluid;
+}
+float orbDist(vec2 xy,int i){
+ vec4 c=cores[0];float row=.125;
+ if(i==1){c=cores[1];row=.375;}
+ if(i==2){c=cores[2];row=.625;}
+ if(c.z<.01)return 9999.;
+ vec2 o=(xy-c.xy)/c.z;
+ float r=length(o);
+ // Waves affect the free surface near its rim, not the centre of the sphere.
+ // Previously atan() at r=0 made an angular singularity: the visible pinched dot.
+ float u=fract(atan(-o.y,o.x)/6.28318530718+1.);
+ float displacement=(texture2D(surface,vec2(u,row)).r*2.-1.)*.15;
+ displacement*=smoothstep(.33,.89,r);
+ return (r-1.-displacement)*c.z;
+}
+float softBridge(float d1,float d2,vec4 one,vec4 two,float strength){
+ if(one.z<.01||two.z<.01||strength<.005)return min(d1,d2);
+ float gap=distance(one.xy,two.xy)-one.z-two.z;
+ // A bridge only exists while rounded surfaces almost meet.
+ // The blending radius tapers to zero *before* a thread can form.
+ float contact=1.-smoothstep(baseR*.035,baseR*.245,gap);
+ float wet=smoothstep(.025,.37,strength);
+ float k=baseR*(.48+.57*strength)*contact*wet;
+ if(k<.003)return min(d1,d2);
+ return smoothUnion(d1,d2,k);
+}
+float shapeDist(vec2 xy){
+ float a=orbDist(xy,0),b=orbDist(xy,1),c=orbDist(xy,2);
+ float d=min(a,min(b,c));
+ // Pairwise metaball unions preserve circular lobes and naturally pinch off.
+ if(bonds.x>.003)d=min(d,softBridge(a,b,cores[0],cores[1],bonds.x));
+ if(bonds.y>.003)d=min(d,softBridge(a,c,cores[0],cores[2],bonds.y));
+ if(bonds.z>.003)d=min(d,softBridge(b,c,cores[1],cores[2],bonds.z));
+ return d;
+}
+float sphereDist3(vec2 xy,float z,int i){
+ vec4 c=cores[0];
+ if(i==1)c=cores[1];
+ if(i==2)c=cores[2];
+ if(c.z<.01)return 9999.;
+ vec2 v=xy-c.xy;
+ float rr=length(v);
+ float radius=max(.001,rr-orbDist(xy,i));
+ return length(vec3(v,z))-radius;
+}
+float volumeDist(vec2 xy,float z){
+ float a=sphereDist3(xy,z,0);
+ float b=sphereDist3(xy,z,1);
+ float c=sphereDist3(xy,z,2);
+ float d=min(a,min(b,c));
+ if(bonds.x>.003)d=min(d,softBridge(a,b,cores[0],cores[1],bonds.x));
+ if(bonds.y>.003)d=min(d,softBridge(a,c,cores[0],cores[2],bonds.y));
+ if(bonds.z>.003)d=min(d,softBridge(b,c,cores[1],cores[2],bonds.z));
+ return d;
+}
+vec4 blendNormals(vec4 a,vec4 b,float k){
+ float h=clamp(.5+.5*(b.w-a.w)/max(.001,k),0.,1.);
+ float v=mix(b.w,a.w,h)-k*h*(1.-h);
+ return vec4(normalize(mix(b.xyz,a.xyz,h)),v);
+}
+float bridgeSize(vec4 a,vec4 b,float strength){
+ if(a.z<.01||b.z<.01||strength<.005)return 0.;
+ float gap=distance(a.xy,b.xy)-a.z-b.z;
+ float contact=1.-smoothstep(baseR*.035,baseR*.245,gap);
+ float wet=smoothstep(.025,.37,strength);
+ return baseR*(.48+.57*strength)*contact*wet;
+}
+vec3 surfaceNormal(vec2 xy,float z){
+ // Differentiate the actual volume, not the 2D height-map silhouette.
+ vec3 a=normalize(vec3(xy-cores[0].xy,z));
+ vec3 b=normalize(vec3(xy-cores[1].xy,z));
+ vec3 c=normalize(vec3(xy-cores[2].xy,z));
+ vec4 aa=vec4(a,sphereDist3(xy,z,0));
+ vec4 bb=vec4(b,sphereDist3(xy,z,1));
+ vec4 cc=vec4(c,sphereDist3(xy,z,2));
+ vec4 best=aa.w<bb.w?aa:bb;
+ if(cc.w<best.w)best=cc;
+ float k=bridgeSize(cores[0],cores[1],bonds.x);
+ if(k>.003){vec4 t=blendNormals(aa,bb,k);if(t.w<best.w)best=t;}
+ k=bridgeSize(cores[0],cores[2],bonds.y);
+ if(k>.003){vec4 t=blendNormals(aa,cc,k);if(t.w<best.w)best=t;}
+ k=bridgeSize(cores[1],cores[2],bonds.z);
+ if(k>.003){vec4 t=blendNormals(bb,cc,k);if(t.w<best.w)best=t;}
+ return normalize(best.xyz);
+}
+float frontDepth(vec2 xy){
+ // Binary-search the front face of the actual three-dimensional fused volume.
+ float lo=0.,hi=baseR*1.75;
+ for(int j=0;j<7;j++){
+  float mid=(lo+hi)*.5;
+  if(volumeDist(xy,mid)<0.)lo=mid;
+  else hi=mid;
+ }
+ return (lo+hi)*.5;
+}
+float metalHeight(vec2 p){
+ vec2 xy=p*screen;
+ if(shapeDist(xy)>=0.)return 0.;
+ return frontDepth(xy);
+}
+float fluidHeight(float d){
+ float h=max(0.,d-.018);
+ return baseR*(1.24*h+.31*sqrt(h));
+}
+float totalHeight(vec2 p){
+ float a=metalHeight(p),b=fluidHeight(density(p));
+ float k=baseR*.09;
+ float w=max(0.,k-abs(a-b))/max(.01,k);
+ return max(a,b)+w*w*k*.25*smoothstep(0.,baseR*.16,a)*smoothstep(0.,baseR*.16,b);
+}
+void main(){
+ vec3 bg=vec3(.009,.011,.016)*(1.-.06*length((uv-.5)*1.55));
+ float dist=shapeDist(uv*screen),d=density(uv);
+ float aSphere=1.-smoothstep(-pixel*.69,pixel*.69,dist);
+ float aFluid=0.;
+ if(hasFluid>.001 && d>.001){
+  float edge=.0023;
+  if(d<.075){
+   vec2 dx=vec2(texel.x,0.),dy=vec2(0.,texel.y);
+   float slope=length(vec2(density(uv+dx)-density(uv-dx),density(uv+dy)-density(uv-dy)))*.44;
+   edge=max(.0018,min(.009,slope));
+  }
+  aFluid=smoothstep(.018-edge,.018+edge,d);
+ }
+ float alpha=max(aSphere,aFluid);
+ if(alpha<.001){gl_FragColor=vec4(bg,1.);return;}
+ vec3 n;
+ if(aSphere>.6 && aFluid<.6){
+  // Reflections follow the 3D smooth union, not a 2D distance-field seam.
+  vec2 xy=uv*screen;
+  float z=frontDepth(xy);
+  n=surfaceNormal(xy,z);
+ }else{
+  float t=max(.65,pixel*.9);
+  vec2 dx=vec2(t/screen.x,0.),dy=vec2(0.,t/screen.y);
+  float gx=(totalHeight(uv+dx)-totalHeight(uv-dx))/(2.*t);
+  float gy=(totalHeight(uv+dy)-totalHeight(uv-dy))/(2.*t);
+  n=normalize(vec3(-gx,-gy,1.));
+ }
+ vec3 view=normalize(vec3((.5-uv.x)*.16,(.5-uv.y)*.12,1.));
+ vec3 reflection=reflect(-view,n);
+ vec3 e=textureCube(env,reflection).rgb;
+ e=e*e*6.;
+ float fresnel=pow(1.-max(0.,dot(n,view)),5.);
+ vec3 col=e*mix(vec3(.61,.64,.69),vec3(1.),fresnel);
+ col=clamp((col*(2.51*col+.03))/(col*(2.43*col+.59)+.14),0.,1.);
+ col=pow(col,vec3(.4545));
+ gl_FragColor=vec4(mix(bg,col,alpha),1.);
+}`;
+const fp=prog(fieldVS,fieldFS),sp=prog(screenVS,screenFS),ul=(p,n)=>gl.getUniformLocation(p,n);
+const fl={pos:gl.getAttribLocation(fp,'pos'),tc:gl.getAttribLocation(fp,'tc'),mass:gl.getAttribLocation(fp,'mass'),screen:ul(fp,'screen'),gain:ul(fp,'gain')};
+const sl={pos:gl.getAttribLocation(sp,'pos'),field:ul(sp,'field'),env:ul(sp,'env'),surface:ul(sp,'surface'),screen:ul(sp,'screen'),texel:ul(sp,'texel'),cores:ul(sp,'cores[0]'),dirs:ul(sp,'dirs[0]'),flexes:ul(sp,'flexes[0]'),bonds:ul(sp,'bonds'),baseR:ul(sp,'baseR'),gain:ul(sp,'gain'),pixel:ul(sp,'pixel'),hasFluid:ul(sp,'hasFluid')};
+const pb=gl.createBuffer(),qb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,qb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+// Same monochrome high-definition mercury environment used by Pure Mercury HD+.
+const env=gl.createTexture();gl.bindTexture(gl.TEXTURE_CUBE_MAP,env);
+const N=256,faces=[(u,v)=>[1,-v,-u],(u,v)=>[-1,-v,u],(u,v)=>[u,1,v],(u,v)=>[u,-1,-v],(u,v)=>[u,-v,1],(u,v)=>[-u,-v,-1]];
+const lights=[{d:[-.8,.7,.4],w:.17,h:.91,i:4.9,c:[1,.98,.96]},{d:[.8,.35,-.4],w:.11,h:.96,i:3.5,c:[.78,.87,1]},{d:[.1,.98,.12],w:.85,h:.16,i:3.2,c:[.95,.97,1]},{d:[-.2,-.88,.4],w:.8,h:.10,i:1.4,c:[.85,.92,1]},{d:[-.65,-.1,-.8],w:.2,h:.55,i:1.6,c:[1,.9,.8]}];
+function norm(a){let n=Math.hypot(...a)||1;return a.map(x=>x/n)}function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+for(const l of lights){l.d=norm(l.d);l.x=norm(cross([0,1,0],l.d));l.y=norm(cross(l.d,l.x));}
+for(let face=0;face<6;face++){const data=new Uint8Array(N*N*4);let k=0;for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+ const u=(x+.5)*2/N-1,v=(y+.5)*2/N-1,d=norm(faces[face](u,v));let b=.003+.012*S((d[1]+.8)/1.8)+.008*Math.exp(-Math.abs(d[1]+.1)*7),rgb=[b,b*1.04,b*1.14];
+ for(const l of lights){const dot=d[0]*l.d[0]+d[1]*l.d[1]+d[2]*l.d[2];if(dot<.05)continue;const xx=Math.abs((d[0]*l.x[0]+d[1]*l.x[1]+d[2]*l.x[2])/dot),yy=Math.abs((d[0]*l.y[0]+d[1]*l.y[1]+d[2]*l.y[2])/dot);const panel=(1-S((xx-l.w*.86)/(l.w*.14)))*(1-S((yy-l.h*.9)/(l.h*.1)))+.05*(1-S((xx-l.w)/.2))*(1-S((yy-l.h)/.25));for(let i=0;i<3;i++)rgb[i]+=l.i*l.c[i]*panel;}
+ for(let i=0;i<3;i++)data[k++]=Math.round(Math.sqrt(C(rgb[i]/6,0,1))*255);data[k++]=255;
+ }gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X+face,0,gl.RGBA,N,N,0,gl.RGBA,gl.UNSIGNED_BYTE,data);}
+gl.texParameteri(gl.TEXTURE_CUBE_MAP,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_CUBE_MAP,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_CUBE_MAP,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_CUBE_MAP,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+const surfaceTex=gl.createTexture(),surfaceData=new Uint8Array(64*4*4);
+gl.bindTexture(gl.TEXTURE_2D,surfaceTex);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+for(let i=0;i<surfaceData.length;i+=4){surfaceData[i]=128;surfaceData[i+3]=255}
+gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,64,4,0,gl.RGBA,gl.UNSIGNED_BYTE,surfaceData);
+const tex=gl.createTexture(),fbo=gl.createFramebuffer(),hf=gl.getExtension('OES_texture_half_float'),hfl=gl.getExtension('OES_texture_half_float_linear'),hfc=gl.getExtension('EXT_color_buffer_half_float');let half=!!(hf&&hfl&&hfc),texType=half?hf.HALF_FLOAT_OES:gl.UNSIGNED_BYTE;
+let W=1,H=1,R=65,T=0,quality=1,prev=0,fpsFrames=0,fpsSpan=0,selected=-1;
+const names=['НАСТРОЕНИЕ','МУЗЫКА','ИСПОЛНИТЕЛИ'];
+const cores=[0,1,2].map(i=>({id:i,x:0,y:0,vx:0,vy:0,homeX:0,homeY:0,r:0,phase:rand(0,V),axisX:1,axisY:0,shape:0,ax:0,ay:0,impact:0,bendX:0,bendY:0,bendVX:0,bendVY:0,hitX:0,hitY:0,pressX:0,pressY:0,ring:new Float32Array(64),ringV:new Float32Array(64),ringNext:new Float32Array(64),mode:'idle',age:0,focus:false,parts:[],jets:[],grow:0,absorbed:0,total:1,gatherTime:0}));
+const ptr={down:false,target:-1,drag:false,x:0,y:0,startX:0,startY:0,vx:0,vy:0,at:0};
+const bonds=[{a:0,b:1,v:0},{a:0,b:2,v:0},{a:1,b:2,v:0}];
+function fieldTexture(){gl.bindTexture(gl.TEXTURE_2D,tex);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,cv.width,cv.height,0,gl.RGBA,texType,null);gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE&&half){half=false;texType=gl.UNSIGNED_BYTE;gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,cv.width,cv.height,0,gl.RGBA,texType,null);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);}gl.bindFramebuffer(gl.FRAMEBUFFER,null);}
+function anchors(w,h){return w<h*.9?[[.52,.30],[.28,.60],[.73,.68]]:[[.27,.50],[.51,.36],[.75,.59]];}
+function resize(){const rect=root.getBoundingClientRect(),nw=Math.max(1,rect.width),nh=Math.max(1,rect.height),ratio=Math.min(nw/W,nh/H),a=anchors(nw,nh);const first=W===1;for(const c of cores){if(!first){c.x*=nw/W;c.y*=nh/H;c.vx*=ratio;c.vy*=ratio;c.grow*=ratio;for(const p of c.parts){p.x*=nw/W;p.y*=nh/H;p.z*=ratio;p.vx*=ratio;p.vy*=ratio;p.vz*=ratio;p.rest=p.rest.map(x=>x*ratio);}}c.homeX=nw*a[c.id][0];c.homeY=nh*a[c.id][1];if(first){c.x=c.homeX;c.y=c.homeY;}}W=nw;H=nh;R=Math.min(W*.162,H*.145,92);for(const c of cores)c.r=R*(c.id===0?1.03:c.id===1?.96:1.0);const dpr=window.devicePixelRatio||1,q=Math.min(2.5,dpr*1.14,Math.sqrt(1050000/(W*H)))*quality;cv.width=Math.max(1,Math.round(W*q));cv.height=Math.max(1,Math.round(H*q));fieldTexture();}
+function updateHint(){const broken=cores.some(c=>c.mode==='burst'||c.mode==='gather');actions.style.display=broken?'flex':'none';gatherBtn.style.display=cores.some(c=>c.mode==='burst')?'':'none';if(broken)hint.innerHTML='Капли взаимодействуют с прикосновениями<br>Каждое ядро живёт собственной жизнью';else if(selected<0)hint.innerHTML='Коснись ядра, чтобы узнать его название<br>Перемещай ядра — металл перетекает и колышется';else hint.innerHTML='Нажми ещё раз для разрушения<br>или соедини ядро с соседним';}
+function select(id){selected=id;cores.forEach(c=>c.focus=c.id===id);labelMain.textContent=names[id];label.style.opacity='1';updateHint();}
+function spawn(c){c.parts=[];const r=c.r*.315;for(let a=-3;a<=3;a++)for(let b=-3;b<=3;b++)for(let d=-3;d<=3;d++){if(Math.hypot(a,b,d)>2.9)continue;const jitter=r*.085,rx=a*r+rand(-jitter,jitter),ry=b*r+rand(-jitter,jitter),rz=d*r+rand(-jitter,jitter);c.parts.push({x:c.x+rx,y:c.y+ry,z:rz,vx:c.vx,vy:c.vy,vz:0,fx:0,fy:0,fz:0,mass:rand(.82,1.2),size:rand(.85,1.14),rest:[rx,ry,rz],id:c.id});}c.total=c.parts.reduce((v,p)=>v+p.mass,0);}
+function burst(c){if(c.mode!=='idle')return;spawn(c);c.jets=[];const n=5+c.id+Math.floor(rand(0,3));for(let i=0;i<n;i++){let a=rand(0,V),z=rand(-.7,.7),h=Math.sqrt(1-z*z);c.jets.push({d:[Math.cos(a)*h,Math.sin(a)*h,z],power:rand(1,3.5),delay:rand(.01,.24)});}c.mode='burst';c.age=0;c.focus=false;selected=-1;label.style.opacity='0';updateHint();onBreak(c.id);}
+function gather(){for(const c of cores){if(c.mode!=='burst')continue;onGather(c.id);c.mode='gather';c.gatherTime=0;c.absorbed=0;let idx=0,best=Infinity;for(let i=0;i<c.parts.length;i++){const p=c.parts[i],d=Math.hypot(p.x-c.x,p.y-c.y);if(d<best){best=d;idx=i}}if(c.parts.length){const p=c.parts.splice(idx,1)[0];c.absorbed=p.mass;c.x=p.x;c.y=p.y;}c.grow=c.r*Math.cbrt(c.absorbed/c.total);}updateHint();}
+function reset(){selected=-1;label.style.opacity='0';const a=anchors(W,H);for(const c of cores){c.homeX=W*a[c.id][0];c.homeY=H*a[c.id][1];c.x=c.homeX;c.y=c.homeY;c.vx=c.vy=0;c.mode='idle';c.focus=false;c.parts=[];c.grow=0;c.absorbed=0;c.age=0;c.shape=0;c.impact=0;c.bendX=c.bendY=c.bendVX=c.bendVY=0;c.hitX=c.hitY=c.pressX=c.pressY=0;c.ring.fill(0);c.ringV.fill(0);c.ringNext.fill(0);}for(const link of bonds)link.v=0;updateHint();clearWorld();}
+gatherBtn.addEventListener('click',gather);restartBtn.addEventListener('click',reset);
+function coreRadius(c){if(c.mode==='burst')return c.r*(1-S(c.age/(.29+.035*c.id)));if(c.mode==='gather')return c.grow;return c.r*(1+(c.focus?.025:0)+.004*Math.sin(T*1.32+c.phase));}
+function integrate(dt){
+ T+=dt;
+ // Semi-implicit integration: pointer is a spring, not a position teleport.
+ for(const c of cores){
+  if(c.mode!=='idle')continue;
+  const held=ptr.down&&ptr.target===c.id&&ptr.drag;
+  const springX=(c.homeX-c.x)*1.12;
+  const springY=(c.homeY-c.y)*1.12;
+  c.ax=springX+Math.sin(T*.62+c.phase)*14-c.vx*1.1;
+  c.ay=springY+Math.cos(T*.57+c.phase)*12-c.vy*1.1;
+  if(held){
+   const fresh=C(1-(performance.now()-ptr.at-55)/140,0,1);
+   const seekX=ptr.x-c.x,seekY=ptr.y-c.y;
+   c.ax+=seekX*76+(ptr.vx*fresh-c.vx)*8.3;
+   c.ay+=seekY*76+(ptr.vy*fresh-c.vy)*8.3;
+  }
+  c.impact*=Math.exp(-dt*6);
+  c.hitX=0;c.hitY=0;
+ }
+ // Soft-body contact: an attachment is local, viscous and short-ranged.
+ // When a pair pulls apart, coupling falls away before any filament can remain.
+ for(const link of bonds){
+  const a=cores[link.a],b=cores[link.b];
+  if(a.mode!=='idle'||b.mode!=='idle'){
+   link.v*=Math.exp(-dt*25);continue;
+  }
+  const dx=b.x-a.x,dy=b.y-a.y;
+  const d=Math.max(.001,Math.hypot(dx,dy)),nx=dx/d,ny=dy/d;
+  const ra=coreRadius(a),rb=coreRadius(b),sum=ra+rb,gap=d-sum;
+  const relX=b.vx-a.vx,relY=b.vy-a.vy,radial=relX*nx+relY*ny;
+  const pulling=ptr.down&&ptr.drag&&(ptr.target===a.id||ptr.target===b.id);
+  const closeness=1-S((gap+R*.035)/(R*.22));
+  const target=closeness;
+  const rate=target>link.v?11:(gap>R*.11?29:pulling?20:7);
+  link.v=M(link.v,target,1-Math.exp(-dt*rate));
+  if(gap>R*.24)link.v*=Math.exp(-dt*45);
+  if(link.v<.004)link.v=0;
+  // Soft exclusion keeps two lobes distinct while they merge, not one stretched oval.
+  if(d<sum*.84){
+    const push=(sum*.84-d)*27;
+    a.ax-=nx*push;b.ax+=nx*push;
+    a.ay-=ny*push;b.ay+=ny*push;
+  }
+  if(link.v<=.004)continue;
+  const range=1-S((gap-R*.015)/(R*.20));
+  const active=link.v*range;
+  if(active<=.001)continue;
+  // Contact pressure creates small, local dimples; no long connecting rods.
+  const pressure=C((sum+R*.05-d)/(R*.30),0,1)*active;
+  a.hitX+=nx*pressure;a.hitY+=ny*pressure;
+  b.hitX-=nx*pressure;b.hitY-=ny*pressure;
+  // Tension disappears at the same point as the smooth metallic connection.
+  const rest=sum*.94;
+  let force=(d-rest)*(d<rest?3.9:6.4)*active-radial*6.2*active;
+  force=C(force,-R*8,R*8);
+  a.ax+=force*nx;b.ax-=force*nx;
+  a.ay+=force*ny;b.ay-=force*ny;
+  const tx=-ny,ty=nx,slip=relX*tx+relY*ty;
+  a.ax+=slip*tx*1.75*active;a.ay+=slip*ty*1.75*active;
+  b.ax-=slip*tx*1.75*active;b.ay-=slip*ty*1.75*active;
+  const heldA=ptr.down&&ptr.drag&&ptr.target===a.id;
+  const heldB=ptr.down&&ptr.drag&&ptr.target===b.id;
+  if(heldA){b.ax+=(a.vx-b.vx)*3.1*active;b.ay+=(a.vy-b.vy)*3.1*active;}
+  if(heldB){a.ax+=(b.vx-a.vx)*3.1*active;a.ay+=(b.vy-a.vy)*3.1*active;}
+  if(gap<R*.025&&radial< -R*.20){
+   const impact=Math.min(1,-radial/(R*3));
+   a.impact=Math.max(a.impact,impact);b.impact=Math.max(b.impact,impact);
+  }
+ }
+ for(const c of cores){
+  if(c.mode==='idle'){
+   c.vx=C(c.vx+c.ax*dt,-R*9,R*9);
+   c.vy=C(c.vy+c.ay*dt,-R*9,R*9);
+   c.x+=c.vx*dt;c.y+=c.vy*dt;
+   const eX=c.r*.87,eY=c.r*.90;
+   if(c.x<eX){c.x=eX;c.vx=Math.abs(c.vx)*.26;c.impact=.6;}
+   else if(c.x>W-eX){c.x=W-eX;c.vx=-Math.abs(c.vx)*.26;c.impact=.6;}
+   if(c.y<eY){c.y=eY;c.vy=Math.abs(c.vy)*.26;c.impact=.6;}
+   else if(c.y>H-eY){c.y=H-eY;c.vy=-Math.abs(c.vy)*.26;c.impact=.6;}
+   const speed=Math.hypot(c.vx,c.vy);
+   if(speed>8){const k=1-Math.exp(-dt*5.5);c.axisX=M(c.axisX,c.vx/speed,k);c.axisY=M(c.axisY,c.vy/speed,k);}
+   const axisLength=Math.hypot(c.axisX,c.axisY)||1;c.axisX/=axisLength;c.axisY/=axisLength;
+   const deformation=C(speed/(R*130)+c.impact*.007,0,.015);
+   c.shape=M(c.shape,deformation,1-Math.exp(-dt*8));
+   // Damped soft-body bend: slight lag on acceleration, then elastic recovery.
+   const targetX=C(c.vx/(R*58)-c.ax/(R*205),-.052,.052);
+   const targetY=C(c.vy/(R*58)-c.ay/(R*205),-.052,.052);
+   c.bendVX+=((targetX-c.bendX)*125-c.bendVX*19)*dt;
+   c.bendVY+=((targetY-c.bendY)*125-c.bendVY*19)*dt;
+   c.bendX=C(c.bendX+c.bendVX*dt,-.067,.067);
+   c.bendY=C(c.bendY+c.bendVY*dt,-.067,.067);
+   const p=1-Math.exp(-dt*15);
+   c.pressX=M(c.pressX,C(c.hitX,-1,1),p);
+   c.pressY=M(c.pressY,C(c.hitY,-1,1),p);
+   // Surface points behave like a coupled liquid membrane, not a rubber ellipsoid.
+   // Translational acceleration excites a travelling wave; pressure generates
+   // an asymmetric dimple and two rounded shoulders at each contact.
+   const wave=c.ring,velocity=c.ringV,next=c.ringNext;
+   const velocityAngle=Math.atan2(c.vy,c.vx);
+   const speedDrive=C(speed/(c.r*4.2),0,1.7);
+   const ax=C(c.ax/(c.r*72),-1.8,1.8),ay=C(c.ay/(c.r*72),-1.8,1.8);
+   const pressure=Math.hypot(c.hitX,c.hitY);
+   const hx=c.hitX/(pressure+.00001),hy=c.hitY/(pressure+.00001);
+   let mean=0;
+   for(let k=0;k<64;k++){
+    const theta=(k+.5)*Math.PI*2/64,nx=Math.cos(theta),ny=Math.sin(theta);
+    const lap=wave[(k+63)%64]+wave[(k+1)%64]-2*wave[k];
+    const facing=nx*hx+ny*hy;
+    const dimple=-100*pressure*Math.pow(Math.max(0,facing),7);
+    const shoulder=32*pressure*Math.pow(Math.max(0,1-Math.abs(facing-.47)*3.8),2);
+    const inertia=-49*(nx*ax+ny*ay);
+    const flow=23*speedDrive*Math.cos(2*(theta-velocityAngle)-c.phase*.3);
+    const swirl=9*speedDrive*Math.sin(3*(theta-velocityAngle)+T*.62+c.phase);
+    const acceleration=-72*wave[k]+515*lap-10.5*velocity[k]+dimple+shoulder+inertia+flow+swirl;
+    velocity[k]=C(velocity[k]+acceleration*dt,-3.5,3.5);
+    next[k]=C(wave[k]+velocity[k]*dt,-.185,.190);
+    mean+=next[k];
+   }
+   mean/=64;
+   for(let k=0;k<64;k++)wave[k]=C(next[k]-mean*.88,-.185,.190);
+  }else if(c.mode==='gather'){
+ c.gatherTime+=dt;c.x=M(c.x,c.homeX,1-Math.exp(-dt*.5));c.y=M(c.y,c.homeY,1-Math.exp(-dt*.5));c.grow=M(c.grow,c.r*Math.cbrt(C(c.absorbed/c.total,0,1)),1-Math.exp(-dt*8));for(let i=c.parts.length-1;i>=0;i--){const p=c.parts[i],dx=c.x-p.x,dy=c.y-p.y,dz=-p.z,d=Math.hypot(dx,dy,dz)+.001,speed=C(d*5,52,340),resp=C(4+c.gatherTime*15,4,9),k=1-Math.exp(-dt*resp);p.vx=M(p.vx,dx/d*speed,k);p.vy=M(p.vy,dy/d*speed,k);p.vz=M(p.vz,dz/d*speed,k);p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;if(d<Math.max(c.r*.13,c.grow*.89)){const x=Math.min(p.mass,p.mass*dt*12+.012);p.mass-=x;c.absorbed+=x;p.size=Math.max(.15,p.size*(1-dt*3.5));if(p.mass<.05){c.absorbed+=p.mass;c.parts.splice(i,1)}}}if(!c.parts.length&&c.gatherTime>.65){c.mode='idle';c.grow=c.r;c.vx=c.vy=0;updateHint();}
+ }else c.age+=dt;
+ }
+ for(const c of cores){if(c.mode!=='burst')continue;for(const p of c.parts){p.fx=p.fy=p.fz=0;
+ if(c.age<.53){let [rx,ry,rz]=p.rest,rd=Math.hypot(rx,ry,rz)+.001,dir=[rx/rd,ry/rd,rz/rd],pressure=0,ax=0,ay=0,az=0;for(const j of c.jets){if(c.age<j.delay)continue;const dot=dir[0]*j.d[0]+dir[1]*j.d[1]+dir[2]*j.d[2],f=Math.pow(Math.max(0,dot),5)*j.power*Math.exp(-(c.age-j.delay)*7);pressure+=f;ax+=j.d[0]*f;ay+=j.d[1]*f;az+=j.d[2]*f;}const f=c.r*(5.5*Math.exp(-c.age*6)+pressure*(c.id===0?24:c.id===1?26:21));p.fx+=dir[0]*f+ax*c.r*10;p.fy+=dir[1]*f+ay*c.r*10;p.fz+=dir[2]*f+az*c.r*10;
+ if(c.id===0){p.fx+=-dir[1]*c.r*4*Math.exp(-c.age*4);p.fy+=dir[0]*c.r*4*Math.exp(-c.age*4);}
+ if(c.id===1){p.fx+=Math.sin(ry/c.r*5+c.age*21)*c.r*3*Math.exp(-c.age*5);p.fy+=Math.cos(rx/c.r*5+c.age*18)*c.r*2*Math.exp(-c.age*5);}
+ }
+ if(ptr.down&&ptr.target<0){const dx=p.x-ptr.x,dy=p.y-ptr.y,d=Math.hypot(dx,dy),h=c.r*1.55;if(d<h){const f=(1-d/h)**2,stale=C(1-(performance.now()-ptr.at-30)/110,0,1);p.fx+=(ptr.vx*stale-p.vx)*f*10+dx*f*7;p.fy+=(ptr.vy*stale-p.vy)*f*10+dy*f*7;}}
+ }
+ }
+ const all=cores.flatMap(c=>c.mode==='burst'?c.parts:[]);for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){const a=all[i],b=all[j],dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;if(Math.abs(dx)>R*1.7||Math.abs(dy)>R*1.7||Math.abs(dz)>R*1.7)continue;const d=Math.hypot(dx,dy,dz),h=R*.315*(a.id===b.id?1:.98),range=h*1.96;if(d<.01||d>range)continue;const w=1-d/range,attraction=(a.id===2||b.id===2?44:38),force=d<h?-(h-d)*210:(d-h)*attraction*w,fx=force*dx/d+(b.vx-a.vx)*w*2.6,fy=force*dy/d+(b.vy-a.vy)*w*2.6,fz=force*dz/d+(b.vz-a.vz)*w*2.6;a.fx+=fx;a.fy+=fy;a.fz+=fz;b.fx-=fx;b.fy-=fy;b.fz-=fz;}
+ for(const p of all){const dxy=Math.exp(-dt*(p.id===2?1.16:1.05)),dz=Math.exp(-dt*1.6);p.vx=(p.vx+p.fx*dt/p.mass)*dxy;p.vy=(p.vy+p.fy*dt/p.mass)*dxy;p.vz=(p.vz+p.fz*dt/p.mass)*dz;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;const e=R*.10;if(p.x<e||p.x>W-e){p.x=C(p.x,e,W-e);p.vx*=-.28}if(p.y<e||p.y>H-e){p.y=C(p.y,e,H-e);p.vy*=-.28}if(Math.abs(p.z)>R*2.6){p.z=C(p.z,-R*2.6,R*2.6);p.vz*=-.2}}
+}
+const vert=new Float32Array(1200*6*5),corners=[[-1,-1],[1,-1],[-1,1],[-1,1],[1,-1],[1,1]];
+function render(){let n=0;for(const c of cores){if(c.mode==='idle')continue;for(const p of c.parts){const dep=C(1+p.z/(c.r*7),.72,1.28),cx=W*.5+(p.x-W*.5)*dep,cy=H*.5+(p.y-H*.5)*dep,h=c.r*(c.mode==='gather'?.29:M(.38,.27,S(c.age/1.5)))*p.size*dep,speed=Math.hypot(p.vx,p.vy),stretch=1+C(speed/(c.r*8),0,.9),angle=Math.atan2(p.vy,p.vx),co=Math.cos(angle),si=Math.sin(angle),wx=h*stretch,wy=h/Math.sqrt(stretch);for(const [u,v] of corners){const xx=u*wx,yy=v*wy;vert[n++]=cx+xx*co-yy*si;vert[n++]=cy+xx*si+yy*co;vert[n++]=u;vert[n++]=v;vert[n++]=.085*p.mass;}}}
+ gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.viewport(0,0,cv.width,cv.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.disable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.useProgram(fp);gl.uniform2f(fl.screen,W,H);gl.uniform1f(fl.gain,half?1:4);gl.bindBuffer(gl.ARRAY_BUFFER,pb);gl.bufferData(gl.ARRAY_BUFFER,vert.subarray(0,n),gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(fl.pos);gl.vertexAttribPointer(fl.pos,2,gl.FLOAT,false,20,0);gl.enableVertexAttribArray(fl.tc);gl.vertexAttribPointer(fl.tc,2,gl.FLOAT,false,20,8);gl.enableVertexAttribArray(fl.mass);gl.vertexAttribPointer(fl.mass,1,gl.FLOAT,false,20,16);if(n)gl.drawArrays(gl.TRIANGLES,0,n/5);gl.disable(gl.BLEND);
+ gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,cv.width,cv.height);gl.useProgram(sp);gl.bindBuffer(gl.ARRAY_BUFFER,qb);gl.enableVertexAttribArray(sl.pos);gl.vertexAttribPointer(sl.pos,2,gl.FLOAT,false,0,0);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(sl.field,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_CUBE_MAP,env);gl.uniform1i(sl.env,1);
+ // One small POT texture stores all three simulated 64-node surfaces.
+ for(let c=0;c<3;c++)for(let j=0;j<64;j++){
+  const idx=(c*64+j)*4;
+  surfaceData[idx]=Math.round(C(.5+cores[c].ring[j]/.68,0,1)*255);
+ }
+ gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,surfaceTex);
+ gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,64,4,gl.RGBA,gl.UNSIGNED_BYTE,surfaceData);
+ gl.uniform1i(sl.surface,2);gl.uniform2f(sl.screen,W,H);gl.uniform2f(sl.texel,1/cv.width,1/cv.height);gl.uniform1f(sl.baseR,R);gl.uniform1f(sl.gain,half?1:4);gl.uniform1f(sl.pixel,W/cv.width);gl.uniform1f(sl.hasFluid,n>0?1:0);
+ const arr=[],dirs=[],flex=[];
+ for(const c of cores){
+  arr.push(c.x,H-c.y,coreRadius(c),c.mode==='idle'?c.shape:0);
+  dirs.push(c.axisX,-c.axisY);
+  flex.push(c.mode==='idle'?c.bendX:0,c.mode==='idle'?-c.bendY:0,c.mode==='idle'?c.pressX:0,c.mode==='idle'?-c.pressY:0);
+ }
+ gl.uniform4fv(sl.cores,new Float32Array(arr));
+ gl.uniform2fv(sl.dirs,new Float32Array(dirs));
+ gl.uniform4fv(sl.flexes,new Float32Array(flex));
+ gl.uniform3f(sl.bonds,bonds[0].v,bonds[1].v,bonds[2].v);
+ gl.drawArrays(gl.TRIANGLES,0,6);
+ if(selected>=0){const c=cores[selected];label.style.left=c.x+'px';label.style.top=(c.y-c.r*1.48)+'px';}
+}
+
+// ---------- BETA LIQUID: three contained worlds.  The original v31 shader / physics above remain unchanged. ----------
+const MOODS=[
+ ['Ночная поездка','#754cff'],['Грусть','#4d94ff'],['Энергия','#ffbb54'],['Ностальгия','#ff9f47'],['Спокойствие','#4beac2'],
+ ['Романтика','#fc4f9f'],['Вечеринка','#e24bff'],['Фокус','#40d6ff'],['Драйв','#fc5656'],['Утро','#efdc63'],
+ ['Мечтательность','#cda2ff'],['Одиночество','#7b8fae'],['Эйфория','#f19cff'],['Расслабление','#49d9a7'],
+ ['Вдохновение','#f8cd64'],['Меланхолия','#718bd1'],['Любовь','#ff6d89'],['Уют','#edbd9a'],
+ ['Тайна','#7b67d1'],['Радость','#ffdf79'],['Нежность','#ec9ec9'],['Мотивация','#fc8e54'],['Ночь','#5070cc'],
+ ['Свобода','#53d7cf'],['Дождь','#6ab4de'],['Тревога','#a673d7'],['Счастье','#b0e973'],['Покой','#6edbbb'],
+ ['Гармония','#8bcfb2'],['Восторг','#eaa2fd'],['Уверенность','#ff8b62'],['Надежда','#93cfff'],
+ ['Лёгкость','#87e2da'],['Кураж','#ff6857'],['Глубина','#6378bd'],['Беззаботность','#f5c783']
+];
+// Demonstration recommendations, not claims from a music API.
+const SONGS=[
+ ['After Dark','Mr.Kitty','Синтвейв','Ночная поездка,Ночь,Тайна,Ностальгия'],
+ ['Space Song','Beach House','Дрим-поп','Грусть,Мечтательность,Ностальгия,Меланхолия'],
+ ['Apocalypse','Cigarettes After Sex','Инди','Романтика,Грусть,Любовь,Ночь'],
+ ['Sunset Lover','Petit Biscuit','Электроника','Спокойствие,Утро,Мечтательность,Свобода'],
+ ['Midnight City','M83','Электроника','Ночная поездка,Энергия,Эйфория,Ностальгия'],
+ ['Wait','M83','Электроника','Меланхолия,Одиночество,Мечтательность,Ночь'],
+ ['Resonance','HOME','Синтвейв','Ностальгия,Ночная поездка,Покой,Ночь'],
+ ['Nightcall','Kavinsky','Синтвейв','Ночная поездка,Драйв,Тайна,Ночь'],
+ ['A Walk','Tycho','Электроника','Спокойствие,Фокус,Свобода,Утро'],
+ ['Awake','Tycho','Электроника','Фокус,Вдохновение,Расслабление,Спокойствие'],
+ ['Weightless','Marconi Union','Эмбиент','Спокойствие,Расслабление,Покой,Фокус'],
+ ['Intro','The xx','Инди','Тайна,Фокус,Ночная поездка,Меланхолия'],
+ ['Angels','The xx','Инди','Романтика,Любовь,Нежность,Покой'],
+ ['Teardrop','Massive Attack','Трип-хоп','Тайна,Грусть,Ночь,Фокус'],
+ ['Angel','Massive Attack','Трип-хоп','Тревога,Тайна,Ночь,Драйв'],
+ ['Ocean Eyes','Billie Eilish','Поп','Романтика,Нежность,Грусть,Мечтательность'],
+ ['lovely','Billie Eilish & Khalid','Поп','Грусть,Одиночество,Меланхолия,Тревога'],
+ ['BIRDS OF A FEATHER','Billie Eilish','Поп','Любовь,Радость,Нежность,Романтика'],
+ ['Blinding Lights','The Weeknd','Поп','Драйв,Ночная поездка,Вечеринка,Энергия'],
+ ['Save Your Tears','The Weeknd','Поп','Ностальгия,Романтика,Грусть,Вечеринка'],
+ ['Starboy','The Weeknd','Поп','Драйв,Энергия,Вечеринка,Ночь'],
+ ['One More Time','Daft Punk','Электроника','Вечеринка,Радость,Эйфория,Энергия'],
+ ['Instant Crush','Daft Punk','Электроника','Романтика,Ностальгия,Меланхолия,Ночная поездка'],
+ ['Get Lucky','Daft Punk','Диско','Радость,Вечеринка,Энергия,Счастье'],
+ ['Strobe','deadmau5','Электроника','Фокус,Эйфория,Ночная поездка,Мечтательность'],
+ ['Shelter','Porter Robinson & Madeon','Электроника','Вдохновение,Любовь,Ностальгия,Эйфория'],
+ ['Levels','Avicii','Электроника','Энергия,Эйфория,Вечеринка,Счастье'],
+ ['The Nights','Avicii','Электроника','Свобода,Мотивация,Радость,Драйв'],
+ ['Wake Me Up','Avicii','Электроника','Утро,Свобода,Вдохновение,Энергия'],
+ ['Believer','Imagine Dragons','Рок','Мотивация,Драйв,Энергия,Уверенность'],
+ ['Radioactive','Imagine Dragons','Рок','Драйв,Тревога,Энергия,Тайна'],
+ ['Numb','Linkin Park','Рок','Грусть,Драйв,Меланхолия,Энергия'],
+ ['In the End','Linkin Park','Рок','Ностальгия,Грусть,Драйв,Меланхолия'],
+ ['Yellow','Coldplay','Инди','Любовь,Нежность,Романтика,Уют'],
+ ['Fix You','Coldplay','Инди','Грусть,Надежда,Любовь,Вдохновение'],
+ ['Viva la Vida','Coldplay','Поп','Мотивация,Вдохновение,Ностальгия,Энергия'],
+ ['No Surprises','Radiohead','Инди','Меланхолия,Одиночество,Грусть,Покой'],
+ ['Let Down','Radiohead','Инди','Мечтательность,Грусть,Одиночество,Меланхолия'],
+ ['Creep','Radiohead','Рок','Одиночество,Грусть,Тревога,Меланхолия'],
+ ['Do I Wanna Know?','Arctic Monkeys','Рок','Ночная поездка,Романтика,Тайна,Драйв'],
+ ['505','Arctic Monkeys','Инди','Романтика,Грусть,Ностальгия,Ночь'],
+ ['Sweater Weather','The Neighbourhood','Инди','Романтика,Ночная поездка,Ностальгия,Ночь'],
+ ['Another Love','Tom Odell','Поп','Грусть,Меланхолия,Любовь,Одиночество'],
+ ['The Night We Met','Lord Huron','Инди','Грусть,Ностальгия,Меланхолия,Ночь'],
+ ['Snowfall','Øneheart & reidenshi','Эмбиент','Ночь,Меланхолия,Покой,Одиночество'],
+ ['Experience','Ludovico Einaudi','Классика','Вдохновение,Мечтательность,Ностальгия,Фокус'],
+ ['Nuvole Bianche','Ludovico Einaudi','Классика','Грусть,Покой,Нежность,Мечтательность'],
+ ['Time','Hans Zimmer','Классика','Вдохновение,Ностальгия,Мечтательность,Мотивация'],
+ ['Cornfield Chase','Hans Zimmer','Классика','Фокус,Мечтательность,Вдохновение,Покой'],
+ ['Golden Hour','JVKE','Поп','Романтика,Мечтательность,Любовь,Утро'],
+ ['Here Comes the Sun','The Beatles','Рок','Утро,Радость,Надежда,Уют'],
+ ['Dreams','Fleetwood Mac','Рок','Свобода,Ностальгия,Спокойствие,Уют'],
+ ['Группа крови','Кино','Русский рок','Драйв,Ностальгия,Свобода,Ночь'],
+ ['Звезда по имени Солнце','Кино','Русский рок','Мечтательность,Ностальгия,Глубина,Ночь'],
+ ['Спокойная ночь','Кино','Русский рок','Ночь,Спокойствие,Меланхолия,Одиночество'],
+ ['Кукушка','Кино','Русский рок','Грусть,Свобода,Надежда,Мечтательность'],
+ ['Хочешь?','Земфира','Русский рок','Любовь,Романтика,Грусть,Нежность'],
+ ['Искала','Земфира','Русский рок','Энергия,Ностальгия,Драйв,Свобода'],
+ ['Прости меня моя любовь','Земфира','Русский рок','Меланхолия,Любовь,Грусть,Ностальгия'],
+ ['Выхода нет','Сплин','Русский рок','Грусть,Меланхолия,Одиночество,Ностальгия'],
+ ['Орбит без сахара','Сплин','Русский рок','Драйв,Энергия,Ностальгия,Кураж'],
+ ['Кукла колдуна','Король и Шут','Русский рок','Вечеринка,Драйв,Тайна,Кураж'],
+ ['Лесник','Король и Шут','Русский рок','Тайна,Драйв,Вечеринка,Кураж'],
+ ['Прыгну со скалы','Король и Шут','Русский рок','Грусть,Драйв,Меланхолия,Тревога'],
+ ['Сансара','Баста','Хип-хоп','Вдохновение,Глубина,Любовь,Надежда'],
+ ['Моя игра','Баста','Хип-хоп','Мотивация,Уверенность,Драйв,Ностальгия'],
+ ['Выпускной (Медлячок)','Баста','Хип-хоп','Ностальгия,Романтика,Грусть,Уют'],
+ ['Малый повзрослел','Макс Корж','Поп / хип-хоп','Ностальгия,Свобода,Вечеринка,Кураж'],
+ ['Жить в кайф','Макс Корж','Поп / хип-хоп','Свобода,Радость,Драйв,Мотивация'],
+ ['Горы по колено','Макс Корж','Поп / хип-хоп','Свобода,Радость,Эйфория,Энергия'],
+ ['Пташка','Моя Мишель','Инди-поп','Романтика,Нежность,Любовь,Уют'],
+ ['Зима в сердце','Моя Мишель','Инди-поп','Грусть,Меланхолия,Ностальгия,Любовь'],
+ ['Где ты','Три дня дождя','Альтернативный рок','Грусть,Ночь,Одиночество,Меланхолия'],
+ ['Отпускай','Три дня дождя','Альтернативный рок','Грусть,Тревога,Любовь,Ночь'],
+ ['Демоны','Три дня дождя','Альтернативный рок','Ночь,Тайна,Тревога,Драйв'],
+ ['Каждый раз','Монеточка','Инди-поп','Ностальгия,Грусть,Романтика,Меланхолия'],
+ ['Нимфоманка','Монеточка','Инди-поп','Энергия,Драйв,Вечеринка,Кураж'],
+ ['Самый дорогой человек','Нервы','Поп-рок','Любовь,Романтика,Грусть,Нежность'],
+ ['Батареи','Нервы','Поп-рок','Ностальгия,Энергия,Любовь,Драйв'],
+ ['Детство','Rauf & Faik','Поп','Ностальгия,Меланхолия,Нежность,Одиночество'],
+ ['Колыбельная','Rauf & Faik','Поп','Спокойствие,Любовь,Нежность,Покой'],
+ ['Комета','JONY','Поп','Романтика,Любовь,Ночь,Мечтательность'],
+ ['Титры','JONY','Поп','Романтика,Ностальгия,Грусть,Любовь'],
+ ['Прятки','HammAli & Navai','Поп / хип-хоп','Грусть,Ночная поездка,Романтика,Ночь'],
+ ['Птичка','HammAli & Navai','Поп / хип-хоп','Грусть,Ностальгия,Любовь,Одиночество'],
+ ['Капкан','Мот','Поп / хип-хоп','Любовь,Романтика,Ночь,Ностальгия'],
+ ['Самая-самая','Егор Крид','Поп','Радость,Вечеринка,Энергия,Романтика'],
+ ['Сердцеедка','Егор Крид','Поп','Вечеринка,Энергия,Драйв,Кураж'],
+ ['Дорадура','Дора','Поп-рок','Энергия,Радость,Вечеринка,Кураж'],
+ ['Зло','Электрофорез','Синтвейв','Ночь,Тайна,Глубина,Ночная поездка'],
+ ['Смерти больше нет','IC3PEAK','Электроника','Тревога,Тайна,Ночь,Драйв'],
+ ['Пачка сигарет','Кино','Русский рок','Одиночество,Ночь,Ностальгия,Спокойствие'],
+ ['На заре','Альянс','Новая волна','Ностальгия,Мечтательность,Ночь,Свобода'],
+ ['Случайная','Моя Мишель','Инди-поп','Любовь,Романтика,Уют,Нежность'],
+ ['Половина','Три дня дождя','Альтернативный рок','Грусть,Меланхолия,Тревога,Любовь'],
+ ["andy warhol","Kai Angel","Рейдж","Ночь,Драйв,Энергия,Тайна","charts"],
+ ["BABYLON","Kai Angel","Рейдж","Ночь,Драйв,Энергия,Тайна","charts"],
+ ["Jealous","9mice","Рейдж","Ночь,Энергия,Драйв,Уверенность","charts"],
+ ["ЗНАК","Toxi$ & Дора","Хип-хоп","Романтика,Энергия,Ночь","charts"],
+ ["Malo 2.0","Егор Крид & OG Buda","Хип-хоп","Вечеринка,Энергия,Кураж","charts"],
+ ["ты че обиделась","madk1d & тёмный принц","Андеграунд-рэп","Драйв,Ночь,Кураж,Энергия","charts"],
+ ["утекай","тёмный принц","Клауд-рэп","Ночь,Грусть,Меланхолия,Тайна","charts"],
+ ["ДИНАСТИЯ","VILLIAN & madk1d","Рейдж","Энергия,Драйв,Кураж,Уверенность","charts"],
+ ["8 миля","VILLIAN & madk1d","Рейдж","Энергия,Драйв,Кураж,Уверенность","charts"],
+ ["цена","madk1d","Андеграунд-рэп","Драйв,Ночь,Энергия,Тревога","charts"],
+ ["засосы","madk1d","Андеграунд-рэп","Драйв,Ночь,Энергия,Тревога","charts"],
+ ["так похуй","madk1d","Андеграунд-рэп","Драйв,Ночь,Энергия,Тревога","charts"],
+ ["MARTINE ROSE","greyrock & madk1d & tewiq","Рейдж","Ночь,Энергия,Драйв,Кураж","charts"],
+ ["NOBODY","Aarne & Toxi$ & Big Baby Tape","Хип-хоп","Драйв,Энергия,Вечеринка,Уверенность","charts"],
+ ["Общество Мертвых Поэтов","VILLIAN & Aarne","Рейдж","Ночь,Тревога,Энергия,Драйв","charts"],
+ ["Обещаю","BLAZER 993","Андеграунд-рэп","Драйв,Ночь,Уверенность","soundcloud"],
+ ["Земляк","Koss & ПЛУТТО","Хип-хоп","Уверенность,Драйв,Энергия","charts"],
+ ["СКИНЬ НОЖКИ","SQWOZ BAB & Satyr","Хип-хоп","Вечеринка,Кураж,Радость","charts"],
+ ["roman","NEWLIGHTCHILD","Клауд-рэп","Ночь,Грусть,Романтика","charts"],
+ ["милый ублюдок","Егор Крид","Поп","Романтика,Меланхолия,Грусть","charts"],
+ ["Риски","Дора & Егор Крид","Поп-рок","Любовь,Грусть,Романтика","charts"],
+ ["Шёлк","Ваня Дмитриенко","Поп","Любовь,Романтика,Нежность","charts"],
+ ["Силуэт","Ваня Дмитриенко & Аня Пересильд","Поп","Романтика,Мечтательность,Любовь","charts"],
+ ["назад в кресты","dabbackwood","Андеграунд-рэп","Ночь,Драйв,Тревога","charts"],
+ ["trytofriend","FORTUNA 812","Клауд-рэп","Грусть,Ночь,Ностальгия,Меланхолия","soundcloud"],
+ ["Closer To Her","FORTUNA 812","Клауд-рэп","Грусть,Ночь,Ностальгия,Меланхолия","soundcloud"],
+ ["Кошмар","FORTUNA 812","Клауд-рэп","Грусть,Ночь,Ностальгия,Меланхолия","soundcloud"],
+ ["Hollywood Highway","FORTUNA 812","Клауд-рэп","Грусть,Ночь,Ностальгия,Меланхолия","soundcloud"],
+ ["go with me","FORTUNA 812","Клауд-рэп","Грусть,Ночь,Ностальгия,Меланхолия","soundcloud"],
+ ["princeofscale","FORTUNA 812","Клауд-рэп","Грусть,Ночь,Ностальгия,Меланхолия","soundcloud"],
+ ["sexy supra","FORTUNA 812","Клауд-рэп","Грусть,Ночь,Ностальгия,Меланхолия","soundcloud"],
+ ["порезы на руках","FORTUNA 812 & elox1m","Клауд-рэп","Грусть,Тревога,Одиночество,Ночь","soundcloud"],
+ ["Простужен","FORTUNA 812 & madk1d","Клауд-рэп","Ночь,Грусть,Драйв","soundcloud"],
+ ["armor club 2","FORTUNA 812 & waunty","Клауд-рэп","Ночь,Энергия,Драйв","soundcloud"],
+ ["отвратительный король","тёмный принц","Клауд-рэп","Тайна,Ночь,Тревога,Одиночество","soundcloud"],
+ ["ПАПА","тёмный принц & tewiq & FORTUNA 812","Клауд-рэп","Ночь,Драйв,Энергия","soundcloud"],
+ ["Случайно Наступил На Шприц","VILLIAN","Рейдж","Тревога,Драйв,Ночь,Энергия","soundcloud"],
+ ["кровь на кроссовках","madk1d","Рейдж","Драйв,Тревога,Энергия","soundcloud"],
+ ["снайпер","tewiq","Андеграунд-рэп","Ночь,Тайна,Энергия","soundcloud"],
+ ["злые рисунки","LOVV66","Клауд-рэп","Ночь,Романтика,Меланхолия","charts"],
+ ["Со всеми тенями","LOVV66 & TRITIA","Клауд-рэп","Ночь,Грусть,Одиночество","charts"],
+ ["ЭМОЦИИ","Tenderlybae","Поп","Романтика,Грусть,Тревога","charts"],
+ ["BATE BATE","Proof Nation","Фонк","Драйв,Энергия,Вечеринка,Кураж","soundcloud"],
+ ["MONTAGEM JOGANDO","Proof Nation","Фонк","Драйв,Энергия,Вечеринка,Кураж","soundcloud"],
+ ["MONTAGEM REVOLTA","Proof Nation","Фонк","Драйв,Энергия,Вечеринка,Кураж","soundcloud"],
+ ["BATE BATE - SLOWED","Proof Nation","Фонк","Драйв,Ночь,Энергия","soundcloud"],
+ ["joey","bunii","Интернет-инди","Мечтательность,Романтика,Ностальгия","soundcloud"],
+ ["Mina","bunii","Интернет-инди","Мечтательность,Романтика,Ностальгия","soundcloud"],
+ ["ghost party","overtonight","Интернет-инди","Ночь,Грусть,Меланхолия","soundcloud"],
+ ["mirrors demo","overtonight","Интернет-инди","Ночь,Грусть,Меланхолия","soundcloud"],
+ ["235","crayon","Интернет-инди","Радость,Энергия,Вдохновение","soundcloud"],
+ ["legs","crayon","Интернет-инди","Радость,Энергия,Вдохновение","soundcloud"],
+ ["Simple Attraction","kid moon","Интернет-инди","Романтика,Грусть,Мечтательность","soundcloud"],
+ ["shadow of my doubt","ayowitty","Диджикор","Фокус,Ночь,Ностальгия","soundcloud"],
+ ["emotionz","soyrica","Диджикор","Энергия,Мечтательность,Ночь","soundcloud"],
+ ["IDONTNEEDSAVING","soyrica","Диджикор","Энергия,Мечтательность,Ночь","soundcloud"],
+ ["SOLITARY","soyrica","Диджикор","Энергия,Мечтательность,Ночь","soundcloud"],
+ ["say goodbye","s0rrow","Интернет-инди","Грусть,Одиночество,Меланхолия","soundcloud"],
+ ["unhappy","s0rrow","Интернет-инди","Грусть,Одиночество,Меланхолия","soundcloud"],
+ ["stalk ur socials","s0rrow","Интернет-инди","Грусть,Одиночество,Меланхолия","soundcloud"],
+ ["gotmeout","reiko","Гиперпоп","Энергия,Мечтательность,Романтика","soundcloud"],
+ ["wantmetoo (demo)","reiko","Гиперпоп","Энергия,Мечтательность,Романтика","soundcloud"],
+ ["fly away","revivle","Интернет-инди","Мечтательность,Покой,Нежность","soundcloud"],
+ ["pangea","i wanna be a jack-o-lantern","Интернет-инди","Энергия,Свобода,Радость","soundcloud"],
+ ["rock my world","yiru","Интернет-инди","Мечтательность,Спокойствие,Фокус","soundcloud"],
+ ["WHAT U LIKE","yiru","Интернет-инди","Мечтательность,Спокойствие,Фокус","soundcloud"],
+ ["Troops","OsamaSon","Рейдж","Энергия,Драйв,Вечеринка,Уверенность","soundcloud"],
+ ["Worst Part","OsamaSon","Рейдж","Энергия,Драйв,Вечеринка,Уверенность","soundcloud"],
+ ["Baghdad","OsamaSon","Рейдж","Энергия,Драйв,Вечеринка,Уверенность","soundcloud"],
+ ["Trenches","OsamaSon","Рейдж","Энергия,Драйв,Вечеринка,Уверенность","soundcloud"],
+ ["All Star","OsamaSon","Рейдж","Энергия,Драйв,Вечеринка,Уверенность","soundcloud"],
+ ["I Got The Fye","OsamaSon","Рейдж","Энергия,Драйв,Вечеринка,Уверенность","soundcloud"],
+ ["Fool","OsamaSon","Рейдж","Энергия,Драйв,Вечеринка,Уверенность","soundcloud"],
+ ["MeVsWorld","OsamaSon","Рейдж","Энергия,Драйв,Вечеринка,Уверенность","soundcloud"],
+ ["Guap Man","OsamaSon","Рейдж","Энергия,Драйв,Вечеринка,Уверенность","soundcloud"],
+ ["nothing like uuu","Nettspend","Андеграунд-рэп","Энергия,Вечеринка,Драйв,Кураж","soundcloud"],
+ ["Shut Up","Nettspend","Андеграунд-рэп","Энергия,Вечеринка,Драйв,Кураж","soundcloud"],
+ ["2024 Freestyle","Nettspend","Андеграунд-рэп","Энергия,Вечеринка,Драйв,Кураж","soundcloud"],
+ ["Fighting My Demons","Ken Carson","Рейдж","Энергия,Драйв,Ночь,Уверенность","soundcloud"],
+ ["Succubus","Ken Carson","Рейдж","Энергия,Драйв,Ночь,Уверенность","soundcloud"],
+ ["Stop Breathing","Playboi Carti","Рейдж","Энергия,Ночь,Драйв,Вечеринка","soundcloud"],
+ ["POP OUT","Playboi Carti","Рейдж","Энергия,Ночь,Драйв,Вечеринка","soundcloud"],
+ ["Die4Guy","Playboi Carti","Рейдж","Энергия,Ночь,Драйв,Вечеринка","soundcloud"],
+ ["Vamp Anthem","Playboi Carti","Рейдж","Энергия,Ночь,Драйв,Вечеринка","soundcloud"],
+ ["NO BATIDAO","ZXKAI","Фонк","Энергия,Драйв,Вечеринка","charts"],
+ ["MONTAGEM GLORIA - Slowed","Rushex & Avenxir","Фонк","Драйв,Энергия,Ночь","charts"],
+ ["SOMETIMES HARDTEKK - Tiktok Version","4cyzon","Хардтекк","Драйв,Энергия,Вечеринка","charts"],
+ ["SEXYBACK - HARDTEKK SUPER SLOWED","Ørbit","Хардтекк","Драйв,Энергия,Вечеринка","charts"],
+ ["Undress Rehearsal - Hardtekk - Slowed","VXLTAGE","Хардтекк","Ночь,Драйв,Энергия","charts"],
+ ["Treehouse", "Alex G", "Инди", "Ностальгия,Мечтательность,Нежность,Романтика", "indie"],
+ ["Mary", "Alex G", "Лоу-фай инди", "Ностальгия,Грусть,Меланхолия,Одиночество", "indie"],
+ ["Sarah", "Alex G", "Лоу-фай инди", "Ностальгия,Меланхолия,Романтика,Ночь", "indie"],
+ ["16 Mirrors", "Alex G", "Лоу-фай инди", "Тайна,Ночь,Грусть,Ностальгия", "indie"],
+ ["Things to Do", "Alex G", "Инди", "Мечтательность,Грусть,Ностальгия,Фокус", "indie"],
+ ["Harvey", "Alex G", "Лоу-фай инди", "Ностальгия,Уют,Меланхолия,Грусть", "indie"],
+ ["Lovers Rock", "TV Girl", "Инди-поп", "Романтика,Ностальгия,Ночь,Любовь", "indie"],
+ ["Not Allowed", "TV Girl", "Инди-поп", "Ностальгия,Романтика,Грусть,Ночь", "indie"],
+ ["Cigarettes out the Window", "TV Girl", "Инди-поп", "Меланхолия,Ночь,Ностальгия,Романтика", "indie"],
+ ["Blue Hair", "TV Girl", "Инди-поп", "Грусть,Меланхолия,Ностальгия,Одиночество", "indie"],
+ ["Song About Me", "TV Girl", "Инди-поп", "Ностальгия,Ночь,Романтика,Кураж", "indie"],
+ ["Nope your too late i already died", "wifiskeleton", "Интернет-андеграунд", "Грусть,Одиночество,Тревога,Ночь", "indie"],
+ ["oh and one last thing", "wifiskeleton", "Интернет-андеграунд", "Грусть,Меланхолия,Ночь,Ностальгия", "indie"],
+ ["keeping secrets", "wifiskeleton", "Интернет-андеграунд", "Грусть,Меланхолия,Тревога,Одиночество", "indie"],
+ ["Inside Out", "Duster", "Слоукор", "Грусть,Ностальгия,Одиночество,Ночь", "indie"],
+ ["Stars Will Fall", "Duster", "Слоукор", "Грусть,Ностальгия,Мечтательность,Ночь", "indie"],
+ ["Me and the Birds", "Duster", "Слоукор", "Меланхолия,Ностальгия,Фокус,Одиночество", "indie"],
+ ["Wish", "sign crushes motorist", "Слоукор", "Меланхолия,Грусть,Одиночество,Ночь", "indie"],
+ ["theres this girl", "sign crushes motorist", "Слоукор", "Грусть,Одиночество,Романтика,Ностальгия", "indie"],
+ ["D>E>A>T>H>M>E>T>A>L", "Panchiko", "Альтернативное инди", "Мечтательность,Ностальгия,Грусть,Ночь", "indie"],
+ ["Jealous", "Eyedress", "Инди-поп", "Ностальгия,Романтика,Любовь,Ночь", "indie"],
+ ["Something About You", "Eyedress", "Инди-поп", "Романтика,Нежность,Ностальгия,Любовь", "indie"],
+ ["New Flesh", "Current Joys", "Инди", "Ностальгия,Грусть,Меланхолия,Ночь", "indie"],
+ ["Kids", "Current Joys", "Инди", "Ностальгия,Грусть,Одиночество,Мечтательность", "indie"],
+ ["Money", "The Drums", "Инди", "Ностальгия,Энергия,Радость,Свобода", "indie"],
+ ["Gilded Lily", "Cults", "Инди-поп", "Грусть,Меланхолия,Романтика,Ностальгия", "indie"],
+ ["Always Forever", "Cults", "Инди-поп", "Романтика,Ностальгия,Любовь,Уют", "indie"],
+ ["No One Noticed", "The Marías", "Дрим-поп", "Грусть,Романтика,Ночь,Одиночество", "indie"],
+ ["Cariño", "The Marías", "Дрим-поп", "Романтика,Нежность,Любовь,Мечтательность", "indie"],
+ ["Hush", "The Marías", "Дрим-поп", "Тайна,Романтика,Ночь,Мечтательность", "indie"],
+ ["Chamber of Reflection", "Mac DeMarco", "Инди", "Ночь,Ностальгия,Меланхолия,Одиночество", "indie"],
+ ["My Kind of Woman", "Mac DeMarco", "Инди", "Романтика,Уют,Ностальгия,Любовь", "indie"],
+ ["Heart to Heart", "Mac DeMarco", "Инди", "Грусть,Ностальгия,Нежность,Меланхолия", "indie"],
+ ["Sofia", "Clairo", "Инди-поп", "Радость,Романтика,Ностальгия,Любовь", "indie"],
+ ["Bags", "Clairo", "Инди-поп", "Грусть,Романтика,Ностальгия,Нежность", "indie"],
+ ["Pretty Girl", "Clairo", "Инди-поп", "Ностальгия,Мечтательность,Уют,Любовь", "indie"],
+ ["the perfect pair", "beabadoobee", "Инди-поп", "Ностальгия,Романтика,Радость,Уют", "indie"],
+ ["Glue Song", "beabadoobee", "Инди-поп", "Романтика,Нежность,Любовь,Уют", "indie"],
+ ["My Love Mine All Mine", "Mitski", "Инди", "Любовь,Грусть,Нежность,Ночь", "indie"],
+ ["Washing Machine Heart", "Mitski", "Инди", "Ностальгия,Грусть,Тревога,Энергия", "indie"],
+ ["i was all over her", "salvia palth", "Слоукор", "Грусть,Ностальгия,Одиночество,Ночь", "indie"],
+ ["Your face", "Wisp", "Шугейз", "Грусть,Ночь,Романтика,Мечтательность", "indie"],
+ ["Once then we'll be free", "Wisp", "Шугейз", "Мечтательность,Свобода,Ночь,Грусть", "indie"],
+ ["flutter", "julie", "Шугейз", "Ностальгия,Тайна,Ночь,Грусть", "indie"],
+ ["lochness", "julie", "Шугейз", "Меланхолия,Грусть,Ночь,Ностальгия", "indie"],
+ ["life imitates life", "quannnic", "Шугейз", "Грусть,Меланхолия,Ночь,Драйв", "indie"],
+ ["i walk this earth all by myself", "EKKSTACY", "Постпанк", "Грусть,Одиночество,Ночь,Тревога", "indie"],
+ ["GMFU", "Odetari & 6arelyhuman", "Сценкор", "Драйв,Энергия,Вечеринка,Кураж", "indie"],
+ ["LOOK DON'T TOUCH", "Odetari", "Сценкор", "Энергия,Драйв,Кураж,Вечеринка", "indie"],
+ ["Hands Up!", "6arelyhuman", "Сценкор", "Энергия,Вечеринка,Кураж,Радость", "indie"],
+ ["all i want is you", "Rebzyyx", "Сценкор", "Грусть,Романтика,Энергия,Тревога", "indie"],
+ ["i'm so crazy for youuu", "Rebzyyx", "Сценкор", "Романтика,Энергия,Тревога,Ночь", "indie"],
+ ["gold", "2hollis", "Экспериментальный рэп", "Эйфория,Энергия,Драйв,Ночь", "indie"],
+ ["trauma", "2hollis", "Экспериментальный рэп", "Драйв,Ночь,Тревога,Энергия", "indie"],
+ ["Kerosene", "Crystal Castles", "Электроника", "Ночь,Тайна,Драйв,Энергия", "indie"],
+ ["Transgender", "Crystal Castles", "Электроника", "Тайна,Ночь,Энергия,Меланхолия", "indie"],
+ ["Dark Beach", "Pastel Ghost", "Вейпорвейв", "Ночь,Мечтательность,Грусть,Ностальгия", "indie"],
+ ["The Perfect Girl", "Mareux", "Постпанк", "Ночь,Романтика,Тайна,Ностальгия", "indie"],
+ ["Sextape", "Deftones", "Альтернативный рок", "Ночь,Грусть,Романтика,Меланхолия", "indie"],
+ ["Change (In the House of Flies)", "Deftones", "Альтернативный рок", "Ночь,Драйв,Тревога,Тайна", "indie"],
+ ["Duvet", "bôa", "Альтернативный рок", "Ностальгия,Меланхолия,Ночь,Грусть", "indie"],
+ ["Freaks", "Surf Curse", "Инди", "Грусть,Ностальгия,Энергия,Тревога", "indie"],
+ ["Space Girl", "Frances Forever", "Инди-поп", "Романтика,Мечтательность,Нежность,Любовь", "indie"],
+ ["Romantic Homicide", "d4vd", "Инди", "Грусть,Одиночество,Романтика,Ночь", "indie"],
+ ["Here With Me", "d4vd", "Инди", "Романтика,Любовь,Нежность,Ностальгия", "indie"],
+ ["End of Beginning", "Djo", "Инди-поп", "Ностальгия,Мечтательность,Ночь,Меланхолия", "indie"],
+ ["Tek It", "Cafuné", "Инди-поп", "Ностальгия,Романтика,Грусть,Мечтательность", "indie"],
+ ["All They Wanted", "Panchiko", "Альтернативное инди", "Ностальгия,Мечтательность,Романтика,Грусть", "indie"],
+ ["BAD TIMES","Imael Angel","Электроника","Ночь,Тайна,Драйв","charts"]
+].map((a,i)=>({id:i,title:a[0],artist:a[1],genre:a[2],moods:a[3].split(','),source:a[4]||null,featured:!!a[4]}));
+
+// --------- short, optional song excerpts + long-press artist information ---------
+// The tracks below are recommendations, not a music catalogue or audio files.
+// Short official streams are used only when Apple makes a promotional sample available.
+const betaPreview=document.createElement('aside');betaPreview.className='beta-preview';
+betaPreview.setAttribute('aria-label','Короткое прослушивание трека');
+betaPreview.innerHTML='<button type="button" class="preview-toggle" aria-label="Воспроизвести фрагмент">▶</button><div class="preview-info"><div class="preview-title"></div><div class="preview-note"></div><div class="preview-progress"><i></i></div></div><div class="preview-actions"><button type="button" class="preview-close" aria-label="Закрыть прослушивание">×</button><a class="preview-link" target="_blank" rel="noopener noreferrer" style="display:none">Слушать в Apple Music</a></div>';
+root.append(betaPreview);
+const previewTitle=betaPreview.querySelector('.preview-title'),previewNote=betaPreview.querySelector('.preview-note'),previewBtn=betaPreview.querySelector('.preview-toggle'),previewLink=betaPreview.querySelector('.preview-link'),previewProgress=betaPreview.querySelector('.preview-progress i');
+const soundcloudLink=document.createElement('a');soundcloudLink.className='preview-soundcloud';soundcloudLink.textContent='Другие версии · SoundCloud ↗';soundcloudLink.target='_blank';soundcloudLink.rel='noopener noreferrer';soundcloudLink.href='https://soundcloud.com';betaPreview.querySelector('.preview-actions').append(soundcloudLink);
+const audioSample=new Audio();audioSample.preload='none';audioSample.playsInline=true;
+const trackDetail=document.createElement('section');trackDetail.className='track-detail';trackDetail.setAttribute('role','dialog');trackDetail.setAttribute('aria-label','Исполнитель и похожая музыка');
+trackDetail.innerHTML='<div class="track-head"><div class="track-eyebrow">СЛУШАЕШЬ СЕЙЧАС</div><button type="button" class="track-x" aria-label="Закрыть рекомендации">×</button></div><h3 class="track-heading"></h3><button type="button" class="track-artist-btn">Исполнитель ↗</button><div class="track-similar-title">ПОХОЖИЕ ТРЕКИ</div><div class="track-similar"></div><div class="track-footnote">Нажми на трек, чтобы послушать. Плюс сохраняет в твой выбор.</div>';
+root.append(trackDetail);
+const trackHeading=trackDetail.querySelector('.track-heading'),trackArtistBtn=trackDetail.querySelector('.track-artist-btn'),trackSimilar=trackDetail.querySelector('.track-similar');
+function hideTrackDetail(){trackDetail.classList.remove('open')}
+trackDetail.querySelector('.track-x').addEventListener('click',hideTrackDetail);
+root.addEventListener('pointerdown',e=>{if(trackDetail.classList.contains('open')&&!trackDetail.contains(e.target)&&!betaPreview.contains(e.target))hideTrackDetail()},true);
+function showTrackDiscovery(song){
+ if(!song)return;
+ trackHeading.textContent=song.title;
+ trackArtistBtn.textContent='● '+song.artist+' · хиты ↗';
+ trackArtistBtn.onclick=()=>{showArtist({id:song.artist,name:song.artist},trackArtistBtn);hideTrackDetail()};
+ const common=SONGS.filter(t=>t.id!==song.id&&!(t.title===song.title&&t.artist===song.artist)).map(t=>{
+ const moodHits=t.moods.filter(m=>song.moods?.includes(m)).length;
+ const score=(t.artist===song.artist?7:0)+(t.genre===song.genre?5:0)+moodHits*2+(t.featured?0.5:0);
+ return {t,score};
+ }).filter(x=>x.score>=5).sort((a,b)=>b.score-a.score||a.t.title.localeCompare(b.t.title,'ru')).slice(0,5);
+ trackSimilar.replaceChildren();
+ for(const {t} of common){
+  const row=document.createElement('div');row.className='track-sim-row';
+  const listen=document.createElement('button');listen.type='button';listen.className='track-sim-open';
+  const n=document.createElement('span');n.textContent=t.title;
+  const a=document.createElement('small');a.textContent=t.artist;listen.append(n,a);
+  listen.onclick=()=>{hideTrackDetail();startPreviewSong(t)};
+  const add=document.createElement('button');add.type='button';add.className='track-sim-add';add.textContent=selectedSongs.has(t.id)?'✓':'+';
+  add.setAttribute('aria-label',selectedSongs.has(t.id)?'Уже в выбранном':'Добавить '+t.title+' в выбранное');
+  add.onclick=()=>{if(!selectedSongs.has(t.id)){selectedSongs.add(t.id);renderWorld();add.textContent='✓';add.setAttribute('aria-label','Уже в выбранном')}else{selectedSongs.delete(t.id);renderWorld();add.textContent='+';add.setAttribute('aria-label','Добавить в выбранное')}};
+  row.append(listen,add);trackSimilar.append(row);
+ }
+ trackDetail.classList.add('open');
+}
+betaPreview.querySelector('.preview-info').setAttribute('role','button');
+betaPreview.querySelector('.preview-info').tabIndex=0;
+betaPreview.querySelector('.preview-info').title='Нажми, чтобы открыть исполнителя и похожие треки';
+betaPreview.querySelector('.preview-info').addEventListener('click',()=>{if(currentPreview){const song=SONGS.find(x=>x.title===currentPreview.title&&x.artist===currentPreview.artist);showTrackDiscovery(song||currentPreview)}});
+betaPreview.querySelector('.preview-info').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();betaPreview.querySelector('.preview-info').click()}});
+
+const PREVIEW_SECONDS=9;
+let clipTimer=null,clipStarted=0,currentPreview=null,previewToken=0,playbackGeneration=0,jsonpSequence=0,activeArtistCard=null;
+const sampleCache=new Map();
+const cleanName=s=>String(s||'').normalize('NFKD').toLowerCase().replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
+// JSONP works when the single-file demo is opened from a local file on iOS/Android.
+function appleSearch(term,limit=16,country='US'){
+ const cacheKey=term+'|'+limit+'|'+country;
+ if(sampleCache.has(cacheKey))return sampleCache.get(cacheKey);
+ const task=new Promise(resolve=>{
+  const callback='__betaApple_'+(++jsonpSequence)+'_'+Date.now();
+  const script=document.createElement('script');let done=false;
+  const finish=(data)=>{if(done)return;done=true;clearTimeout(timer);delete window[callback];script.remove();resolve(Array.isArray(data?.results)?data.results:[])};
+  window[callback]=finish;
+  script.async=true;script.src='https://itunes.apple.com/search?media=music&entity=song&country='+encodeURIComponent(country)+'&limit='+limit+'&term='+encodeURIComponent(term)+'&callback='+callback;
+  script.onerror=()=>finish(null);
+  const timer=setTimeout(()=>finish(null),5000);
+  document.head.append(script);
+ });
+ sampleCache.set(cacheKey,task);
+ task.then(rows=>{if(!rows.length)sampleCache.delete(cacheKey)});
+ return task;
+}
+function matchSample(title,artist,rows){
+ const want=cleanName(title),artistWant=cleanName(artist),firstArtist=cleanName(artist.split(/\s+(?:&|and|feat\.?|ft\.?)\s+|,/i)[0]);
+ let best=null,bestScore=0;
+ for(const r of rows){
+  if(!r||r.kind!=='song'||!r.previewUrl)continue;
+  const found=cleanName(r.trackName),act=cleanName(r.artistName);
+  const titleOK=found===want||found.startsWith(want+' ')||want.startsWith(found+' ');
+  const artistOK=act===artistWant||act.includes(firstArtist)&&firstArtist.length>=3||artistWant.includes(act)&&act.length>=4;
+  if(!titleOK||!artistOK)continue;
+  const score=(found===want?12:6)+(act===artistWant?7:3);
+  if(score>bestScore){best=r;bestScore=score}
+ }
+ return best;
+}
+function setPreviewPlayingUI(){previewBtn.textContent=audioSample.paused?'▶':'Ⅱ';previewBtn.setAttribute('aria-label',audioSample.paused?'Воспроизвести фрагмент':'Приостановить фрагмент')}
+function pauseSample(){playbackGeneration++;audioSample.pause();clearTimeout(clipTimer);clipTimer=null;setPreviewPlayingUI()}
+function closePreview(){hideTrackDetail();previewToken++;pauseSample();audioSample.removeAttribute('src');audioSample.load();currentPreview=null;betaPreview.classList.remove('open');root.classList.remove('previewing');previewProgress.style.width='0%';previewLink.style.display='none'}
+function playAvailableSample(){
+ if(!currentPreview?.url)return;
+ if(audioSample.src!==currentPreview.url){audioSample.src=currentPreview.url;audioSample.load()}
+ if(!audioSample.paused){pauseSample();previewNote.textContent='На паузе · 9 секунд';return}
+ if(audioSample.currentTime>=PREVIEW_SECONDS-.3)audioSample.currentTime=0;
+ const generation=++playbackGeneration,token=previewToken;
+ const attempt=audioSample.play();
+ Promise.resolve(attempt).then(()=>{
+  if(token!==previewToken||generation!==playbackGeneration||audioSample.paused||!currentPreview)return;
+  clipStarted=audioSample.currentTime;
+  previewNote.textContent='Играет фрагмент · '+((currentPreview.source==='iTunes'?'courtesy of iTunes':currentPreview.source||'музыкальный каталог'));
+  setPreviewPlayingUI();clearTimeout(clipTimer);
+  clipTimer=setTimeout(()=>{
+   if(generation!==playbackGeneration||token!==previewToken)return;
+   pauseSample();audioSample.currentTime=0;previewProgress.style.width='100%';previewNote.textContent='Фрагмент закончен · 9 секунд';
+  },PREVIEW_SECONDS*1000);
+ }).catch(()=>{
+  if(token!==previewToken||generation!==playbackGeneration)return;
+  setPreviewPlayingUI();previewNote.textContent='Нажми ▶ · браузер мог запретить автозапуск';
+ });
+}
+async function deezerSearch(song){
+ try{
+  const url='/_api/music-preview?title='+encodeURIComponent(song.title)+'&artist='+encodeURIComponent(song.artist);
+  const res=await fetch(url,{signal:AbortSignal.timeout(7000),cache:'no-store'});
+  if(!res.ok)return null;
+  const data=await res.json();
+  if(data?.ok&&typeof data.preview==='string'&&/^https:\/\/[a-z0-9.-]*dzcdn\.net\//i.test(data.preview))
+   return {url:data.preview,page:data.page,source:'Deezer'};
+ }catch(_){/* An alternate catalog may still have a matching sample. */}
+ return null;
+}
+async function itunesSearch(song){
+ const russian=/[\u0400-\u04FF]/.test(song.title+' '+song.artist);
+ const countries=russian?['RU','US']:['US','GB'];
+ const batches=await Promise.all(countries.map(country=>appleSearch(song.title+' '+song.artist,18,country)));
+ for(const rows of batches){
+  const result=matchSample(song.title,song.artist,rows);
+  if(result){
+   const url=result.previewUrl?.replace(/^http:/,'https:');
+   if(/^https:\/\//.test(url))return {url,page:result.trackViewUrl||null,source:'iTunes'};
+  }
+ }
+ return null;
+}
+function findFirstRealPreview(song){
+ return new Promise(resolve=>{
+  let pending=2,done=false;
+  const settle=(match)=>{if(match&&!done){done=true;resolve(match)}else if(!--pending&&!done){done=true;resolve(null)}};
+  Promise.resolve().then(()=>deezerSearch(song)).then(settle,()=>settle(null));
+  Promise.resolve().then(()=>itunesSearch(song)).then(settle,()=>settle(null));
+ });
+}
+async function startPreviewSong(song,autoPlay=true){
+ hideTrackDetail();const token=++previewToken;pauseSample();audioSample.removeAttribute('src');audioSample.load();
+ currentPreview={...song,url:null,source:null};
+ root.classList.add('previewing');betaPreview.classList.add('open');previewTitle.textContent=song.title+' · '+song.artist;
+ previewNote.textContent='Проверяем доступные фрагменты · нажми на название для похожих';previewBtn.disabled=true;previewBtn.textContent='…';previewProgress.style.width='0%';previewLink.style.display='none';
+ soundcloudLink.href='https://soundcloud.com/search/sounds?q='+encodeURIComponent(song.artist+' '+song.title);
+ try{
+  const found=await findFirstRealPreview(song);
+  if(token!==previewToken)return;
+  if(!found){previewNote.textContent='Превью недоступно · проверь другие версии в SoundCloud ↗';previewBtn.disabled=true;previewBtn.textContent='—';return}
+  currentPreview.url=found.url;currentPreview.source=found.source;
+  if(/^https:\/\//.test(found.page||'')){
+   previewLink.href=found.page;previewLink.textContent='Открыть в '+found.source;previewLink.style.display='block';
+  }
+  previewBtn.disabled=false;previewBtn.textContent='▶';
+  previewNote.textContent='9 секунд · '+found.source+' · нажми на название для похожих';
+  if(autoPlay)playAvailableSample();
+ }catch(err){if(token!==previewToken)return;previewNote.textContent='Каталоги недоступны · попробуй SoundCloud ↗';previewBtn.disabled=true;previewBtn.textContent='—'}
+}
+previewBtn.addEventListener('click',()=>playAvailableSample());
+previewBtn.addEventListener('pointerdown',e=>e.stopPropagation());
+betaPreview.querySelector('.preview-close').addEventListener('click',closePreview);
+audioSample.addEventListener('ended',()=>{clearTimeout(clipTimer);clipTimer=null;setPreviewPlayingUI();if(currentPreview)previewNote.textContent='Фрагмент завершён'});
+audioSample.addEventListener('timeupdate',()=>{if(currentPreview&&!audioSample.paused)previewProgress.style.width=(Math.min(100,100*audioSample.currentTime/PREVIEW_SECONDS))+'%'});
+audioSample.addEventListener('error',()=>{if(currentPreview){pauseSample();previewNote.textContent='Аудио недоступно в этом браузере или регионе'}});
+
+// Curated familiar releases for the mini card; no rankings or chart positions are implied.
+const HITS={
+'Mr.Kitty':['After Dark','Destroy Me','Habits'],
+'Beach House':['Space Song','Myth','Silver Soul'],
+'Cigarettes After Sex':['Apocalypse','Nothing’s Gonna Hurt You Baby','K.'],
+'Petit Biscuit':['Sunset Lover','Problems','Night Trouble'],
+'M83':['Midnight City','Wait','Outro'],
+'HOME':['Resonance','We’re Finally Landing','Before the Night'],
+'Kavinsky':['Nightcall','Odd Look','Roadgame'],
+'Tycho':['Awake','A Walk','Dive'],
+'Marconi Union':['Weightless'],
+'The xx':['Intro','Angels','Crystalised'],
+'Massive Attack':['Teardrop','Angel','Unfinished Sympathy'],
+'Billie Eilish':['BIRDS OF A FEATHER','bad guy','ocean eyes'],
+'Billie Eilish & Khalid':['lovely'],
+'The Weeknd':['Blinding Lights','Starboy','Save Your Tears'],
+'Daft Punk':['One More Time','Get Lucky','Harder, Better, Faster, Stronger'],
+'deadmau5':['Strobe','Ghosts ’n’ Stuff','The Veldt'],
+'Porter Robinson & Madeon':['Shelter'],
+'Avicii':['Levels','The Nights','Wake Me Up'],
+'Imagine Dragons':['Believer','Radioactive','Demons'],
+'Linkin Park':['Numb','In the End','What I’ve Done'],
+'Coldplay':['Viva la Vida','Yellow','Fix You'],
+'Radiohead':['Creep','No Surprises','Karma Police'],
+'Arctic Monkeys':['Do I Wanna Know?','505','I Wanna Be Yours'],
+'The Neighbourhood':['Sweater Weather','Daddy Issues','Softcore'],
+'Tom Odell':['Another Love','Heal','Black Friday'],
+'Lord Huron':['The Night We Met','Ends of the Earth','Meet Me in the Woods'],
+'Øneheart & reidenshi':['snowfall'],
+'Ludovico Einaudi':['Experience','Nuvole Bianche','Una Mattina'],
+'Hans Zimmer':['Time','Cornfield Chase','Interstellar Main Theme'],
+'JVKE':['golden hour','this is what falling in love feels like','this is what heartbreak feels like'],
+'The Beatles':['Here Comes the Sun','Let It Be','Hey Jude'],
+'Fleetwood Mac':['Dreams','Everywhere','The Chain'],
+'Кино':['Группа крови', 'Звезда по имени Солнце', 'Спокойная ночь'],
+'Земфира':['Хочешь?', 'Искала', 'Прости меня моя любовь'],
+'Сплин':['Выхода нет', 'Орбит без сахара', 'Моё сердце'],
+'Король и Шут':['Кукла колдуна', 'Лесник', 'Прыгну со скалы'],
+'Баста':['Сансара', 'Моя игра', 'Выпускной (Медлячок)'],
+'Макс Корж':['Жить в кайф', 'Горы по колено', 'Малый повзрослел'],
+'Моя Мишель':['Пташка', 'Зима в сердце', 'Случайная'],
+'Три дня дождя':['Где ты', 'Отпускай', 'Демоны'],
+'Монеточка':['Каждый раз', 'Нимфоманка', 'Последняя дискотека'],
+'Нервы':['Батареи', 'Самый дорогой человек', 'Кофе — мой друг'],
+'Rauf & Faik':['Детство', 'Колыбельная', 'Вечера'],
+'JONY':['Комета', 'Титры', 'Аллея'],
+'HammAli & Navai':['Прятки', 'Птичка', 'Ноты'],
+'Мот':['Капкан', 'Август — это ты'],
+'Егор Крид':['Самая-самая', 'Сердцеедка', 'Будильник'],
+'Дора':['Дорадура', 'Втюрилась'],
+'Электрофорез':['Зло', 'По разбитым зеркалам'],
+'IC3PEAK':['Смерти больше нет', 'Грустная сука'],
+'Альянс':['На заре'],
+ "Alex G":["Treehouse", "Mary", "Sarah", "16 Mirrors"],
+ "TV Girl":["Lovers Rock", "Not Allowed", "Cigarettes out the Window", "Blue Hair"],
+ "wifiskeleton":["Nope your too late i already died", "oh and one last thing", "keeping secrets"],
+ "Duster":["Inside Out", "Stars Will Fall", "Me and the Birds"],
+ "sign crushes motorist":["Wish", "theres this girl"],
+ "Panchiko":["D>E>A>T>H>M>E>T>A>L","All They Wanted"],
+ "Eyedress":["Jealous", "Something About You"],
+ "Current Joys":["New Flesh", "Kids"],
+ "The Drums":["Money"],
+ "Cults":["Gilded Lily", "Always Forever"],
+ "The Marías":["No One Noticed", "Cariño", "Hush"],
+ "Mac DeMarco":["Chamber of Reflection", "My Kind of Woman", "Heart to Heart"],
+ "Clairo":["Sofia", "Bags", "Pretty Girl"],
+ "beabadoobee":["the perfect pair", "Glue Song"],
+ "Mitski":["My Love Mine All Mine", "Washing Machine Heart"],
+ "salvia palth":["i was all over her"],
+ "Wisp":["Your face", "Once then we'll be free"],
+ "julie":["flutter", "lochness"],
+ "quannnic":["life imitates life"],
+ "EKKSTACY":["i walk this earth all by myself"],
+ "Odetari & 6arelyhuman":["GMFU"],
+ "Odetari":["LOOK DON'T TOUCH"],
+ "6arelyhuman":["Hands Up!"],
+ "Rebzyyx":["all i want is you", "i'm so crazy for youuu"],
+ "2hollis":["gold", "trauma"],
+ "Crystal Castles":["Kerosene", "Transgender"],
+ "Pastel Ghost":["Dark Beach"],
+ "Mareux":["The Perfect Girl"],
+ "Deftones":["Sextape", "Change (In the House of Flies)"],
+ "bôa":["Duvet"],
+ "Surf Curse":["Freaks"],
+ "Frances Forever":["Space Girl"],
+ "d4vd":["Romantic Homicide", "Here With Me"],
+ "Djo":["End of Beginning"],
+ "Cafuné":["Tek It"],
+ "The Neighbourhood":["Sweater Weather"],
+};
+const artistDetail=document.createElement('section');artistDetail.className='artist-detail';artistDetail.setAttribute('role','dialog');artistDetail.setAttribute('aria-label','Информация об исполнителе');artistDetail.innerHTML='<header><span class="artist-avatar"></span><div class="artist-h"><b></b><small>Музыка и популярные композиции</small></div><button class="artist-x" aria-label="Закрыть" type="button">×</button></header><div class="hits-title">Известные треки</div><div class="hit-list"></div><div class="artist-tip">Нажми на трек, чтобы послушать короткий фрагмент, если он доступен.</div>';
+root.append(artistDetail);
+artistDetail.querySelector('.artist-x').addEventListener('click',()=>artistDetail.classList.remove('open'));
+function showArtist(it,el){
+ const name=it.id||it.name;
+ activeArtistCard=name;
+ artistDetail.querySelector('.artist-avatar').textContent=name.charAt(0).toUpperCase();
+ artistDetail.querySelector('.artist-h b').textContent=name;
+let scArtistLink=artistDetail.querySelector('.artist-soundcloud');if(!scArtistLink){scArtistLink=document.createElement('a');scArtistLink.className='artist-soundcloud';scArtistLink.textContent='Найти в SoundCloud ↗';scArtistLink.target='_blank';scArtistLink.rel='noopener noreferrer';artistDetail.querySelector('.artist-h').append(scArtistLink)}scArtistLink.href='https://soundcloud.com/search/people?q='+encodeURIComponent(name);
+ const list=artistDetail.querySelector('.hit-list');list.replaceChildren();
+ const hits=HITS[name]||SONGS.filter(t=>t.artist===name).map(t=>t.title);
+ const uniq=[...new Set(hits)].slice(0,4);
+ for(let i=0;i<uniq.length;i++){
+  const title=uniq[i],b=document.createElement('button');b.type='button';b.className='hit-row';
+  const number=document.createElement('span');number.className='hit-n';number.textContent=(i+1)+'.';
+  const text=document.createElement('span');text.className='hit-name';text.textContent=title;
+  const listen=document.createElement('span');listen.className='hit-play';listen.textContent='▶ 9с';
+  b.append(number,text,listen);b.addEventListener('click',e=>{e.stopPropagation();hideArtist();startPreviewSong({title,artist:name})});list.append(b)
+ }
+ if(!uniq.length){const empty=document.createElement('p');empty.className='artist-tip';empty.textContent='Треки этого исполнителя пока не добавлены в демо-каталог';list.append(empty)}
+ // Keep the window small and close to the pressed chip while avoiding screen edges.
+ const rr=root.getBoundingClientRect(),er=el.getBoundingClientRect(),width=Math.min(330,rr.width-28);
+ const px=C(er.left-rr.left+er.width*.5-width*.5,14,Math.max(14,rr.width-width-14));
+ const py=C(er.top-rr.top-230,Math.max(90,rr.height*.13),Math.max(100,rr.height-340));
+ artistDetail.style.left=px+'px';artistDetail.style.top=py+'px';
+ artistDetail.classList.add('open');
+}
+function hideArtist(){artistDetail.classList.remove('open');activeArtistCard=null}
+artistDetail.querySelector('.artist-x').addEventListener('click',hideArtist);
+root.addEventListener('pointerdown',e=>{if(activeArtistCard&&!artistDetail.contains(e.target)&&!e.target.closest('[data-type="artist"]'))hideArtist()},true);
+function artistHold(el,it){
+ let hold=null,startX=0,startY=0,activated=false;
+ const cancel=()=>{clearTimeout(hold);hold=null};
+ el.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  activated=false;cancel();startX=e.clientX;startY=e.clientY;
+  hold=setTimeout(()=>{activated=true;showArtist(it,el)},480);
+ });
+ el.addEventListener('pointermove',e=>{if(Math.hypot(e.clientX-startX,e.clientY-startY)>11)cancel()});
+ el.addEventListener('pointercancel',cancel);
+ el.addEventListener('pointerup',cancel);
+ el.addEventListener('click',e=>{if(activated){e.preventDefault();e.stopImmediatePropagation();activated=false}},true);
+ el.addEventListener('contextmenu',e=>{e.preventDefault();cancel();activated=true;showArtist(it,el)});
+ el.addEventListener('keydown',e=>{if((e.key==='Enter'&&e.shiftKey)||e.key==='F10'){e.preventDefault();showArtist(it,el)}});
+}
+
+const tagLayer=root.querySelector('.droplet-tags'),status=root.querySelector('.top-status'),note=root.querySelector('.substatus'),more=root.querySelector('.more'),searchBox=root.querySelector('.scene-search'),searchInput=searchBox.querySelector('input'),searchClear=searchBox.querySelector('.searchbar button'),results=searchBox.querySelector('.results'),chosen=root.querySelector('.chosen-strip');
+
+const savedControls=document.createElement('div');savedControls.className='saved-controls';
+savedControls.innerHTML='<span class="saved-caption">ВЫБРАНО <b class="saved-count">0</b></span><div class="saved-scroll"><button class="saved-left" type="button" aria-label="Прокрутить выбранное влево">‹</button><button class="saved-right" type="button" aria-label="Прокрутить выбранное вправо">›</button></div>';
+searchBox.insertBefore(savedControls,chosen);
+const savedCount=savedControls.querySelector('.saved-count');
+savedControls.querySelector('.saved-left').onclick=()=>chosen.scrollBy({left:-Math.max(180,chosen.clientWidth*.72),behavior:'smooth'});
+savedControls.querySelector('.saved-right').onclick=()=>chosen.scrollBy({left:Math.max(180,chosen.clientWidth*.72),behavior:'smooth'});
+chosen.addEventListener('wheel',e=>{if(chosen.scrollWidth>chosen.clientWidth+2&&Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();chosen.scrollLeft+=e.deltaY}},{passive:false});
+chosen.addEventListener('scroll',()=>{
+ const max=chosen.scrollWidth-chosen.clientWidth;
+ savedControls.querySelector('.saved-left').disabled=chosen.scrollLeft<3;
+ savedControls.querySelector('.saved-right').disabled=chosen.scrollLeft>max-3;
+},{passive:true});
+
+actions.appendChild(more); // One compact toolbar, so controls do not cover a world.
+const activeMoods=new Set(),selectedSongs=new Set(),selectedArtists=new Set();
+let opened=new Set(),liveTags=new Map(),places=new Map(),focusItem=null,pages={mood:0,track:0,artist:0},worldInit=false,frameClock=0,lastLayoutW=0,lastLayoutH=0,moodChangeAt=-1;
+const KEYS=['mood','track','artist'];
+const keyOf=(it)=>it.type+':'+it.id;
+const typeOwner=(type)=>type==='mood'?0:type==='artist'?2:1;
+const normText=s=>String(s).toLocaleLowerCase('ru').replace(/ё/g,'е').replace(/tvgerl/g,'tv girl').replace(/[\s._-]+/g,'').trim();
+const ease=x=>{x=C(x,0,1);return 1-Math.pow(1-x,3)};
+const hash=(n)=>{let x=Math.sin(n*127.1+82.13)*43758.5453;return x-Math.floor(x)};
+function initWorld(){worldInit=true;clearWorld()}
+function clearWorld(){
+ closePreview();hideArtist();
+ for(const obj of liveTags.values())obj.el.remove();liveTags.clear();places.clear();tagLayer.replaceChildren();opened.clear();activeMoods.clear();selectedSongs.clear();selectedArtists.clear();focusItem=null;pages={mood:0,track:0,artist:0};moodChangeAt=-1;
+ root.classList.remove('immersed');status.textContent='';note.textContent='';chosen.replaceChildren();chosen.scrollLeft=0;updateChosen.lastCount=0;updateChosen.prevCount=0;searchInput.value='';results.style.display='none';more.style.display='none';
+}
+function onBreak(id){
+ opened.add(id);root.classList.add('immersed');label.style.opacity='0';
+ pages[KEYS[id]]=0;renderWorld();
+}
+function onGather(id){opened.delete(id);renderWorld();if(searchInput.value)refreshSearch();}
+function currentMood(){return activeMoods.values().next().value||null}
+function matchingSongs(){
+ const active=currentMood();if(!active)return [];
+ return SONGS.filter(t=>t.moods.includes(active)).map(t=>({...t,rank:1}))
+ .sort((a,b)=>Number(b.featured)-Number(a.featured)||a.title.localeCompare(b.title,'ru'));
+}
+function recommend(){
+ // Song genres remain useful metadata for similarities, but never appear as selectable droplets.
+ const tracks=matchingSongs(),artists=new Map();
+ for(const t of tracks){const a=artists.get(t.artist)||{name:t.artist,rank:0,total:0};a.rank++;a.total++;artists.set(t.artist,a)}
+ return {tracks,artists:[...artists.values()].sort((a,b)=>b.rank-a.rank||a.name.localeCompare(b.name,'ru'))};
+}
+function getItems(){
+ const mobile=W<620,mid=W<870;
+ // Restore the original v40 page sizes even when three cores are open.
+ // Collision avoidance belongs to the label layout, not hiding content.
+ const mN=mobile?7:mid?10:13;
+ const tN=mobile?5:mid?7:10;
+ const aN=mobile?4:mid?5:8;
+ const output=[];
+ if(opened.has(0)){
+  const moods=MOODS.map(([name,color],i)=>({type:'mood',id:name,name,color,rank:i}));
+  const sel=moods.filter(x=>activeMoods.has(x.id));const un=moods.filter(x=>!activeMoods.has(x.id));
+  output.push(...sel,...un.slice(pages.mood*Math.max(1,mN-sel.length),pages.mood*Math.max(1,mN-sel.length)+mN-sel.length));
+ }
+ const r=recommend();
+ if(opened.has(1)){
+  // Each mood shows only its fresh recommendations. Previously selected songs
+  // live in the bottom collection, NOT among droplets in any mood.
+  const fresh=r.tracks.filter(t=>!selectedSongs.has(t.id)).map(t=>({type:'track',id:String(t.id),name:t.title,sub:t.artist,rank:1}));
+  output.push(...fresh.slice(pages.track*tN,pages.track*tN+tN));
+ }
+ if(opened.has(2)){
+  // Artists that were picked are kept in the bottom strip only.
+  const fresh=r.artists.filter(a=>!selectedArtists.has(a.name)).map(a=>({type:'artist',id:a.name,name:a.name,rank:a.rank}));
+  output.push(...fresh.slice(pages.artist*aN,pages.artist*aN+aN));
+ }
+ return {items:output,r};
+}
+function isPicked(it){return it.type==='mood'?activeMoods.has(it.id):it.type==='track'?selectedSongs.has(Number(it.id)):it.type==='artist'?selectedArtists.has(it.id):false}
+function zone(id){
+ const c=cores[id];
+ let closest=Infinity;
+ for(const other of cores)if(other.id!==id)closest=Math.min(closest,Math.hypot(c.x-other.x,c.y-other.y));
+ // Local, invisible circular field. Each item centre and its whole label stay inside.
+ const radius=W<620?C(Math.min(c.r*3.35,H*.29,Math.max(W*.52,172)),c.r*2.5,c.r*3.5):C(Math.min(c.r*2.85,closest*.75,Math.min(W,H)*.32),c.r*1.8,c.r*3);
+ return {x:c.x,y:c.y,r:radius};
+}
+function estimatedWidth(it){
+ const mobile=W<620,cap=mobile?Math.min(W*.40,164):Math.min(188,W*.24);
+ return C((it.name.length*(mobile?6.15:7.25)+38),62,cap);
+}
+function place(it){
+ const key=keyOf(it),own=typeOwner(it.type),z=zone(own),existing=places.get(key);
+ if(existing)return existing;
+ const w=estimatedWidth(it),h=W<620?32:37,margin=Math.hypot(w*.5,h*.5)+10,maxR=Math.max(18,z.r-margin);
+ let best=null,bestScore=Infinity,seedKey=key.split('').reduce((a,ch)=>a*31+ch.charCodeAt(0)|0,0);
+ const otherPlaces=[...places.values()].filter(p=>{const o=liveTags.get(p.key);return !!o&&o.phase!=='exit'}); 
+ for(let i=0;i<(W<620?95:145);i++){
+  const theta=hash(seedKey*.00013+i*2.83)*Math.PI*2;
+  const rad=Math.sqrt(hash(seedKey*.00017+i*4.19))*maxR;
+  const dx=rad*Math.cos(theta),dy=rad*Math.sin(theta);
+  const x=z.x+dx,y=z.y+dy;
+  if(x-w*.5<8||x+w*.5>W-8||y-h*.5<Math.max(100,H*.16)||y+h*.5>H-(W<620?Math.max(205,H*.235):Math.max(106,H*.16)))continue;
+  let score=Math.abs(rad-maxR*.64)*.08;
+  // Only seek free space inside this core's boundary. Never rearrange older labels.
+  for(const p of otherPlaces){
+   const pc=cores[p.owner],a=pc.x+p.dx,b=pc.y+p.dy,overX=Math.max(0,(w+p.w)*.5+7-Math.abs(x-a)),overY=Math.max(0,(h+p.h)*.5+6-Math.abs(y-b));
+   if(overX>0&&overY>0)score+=1100+overX*overY*3;
+  }
+  // Avoid obscuring an intact metal core in another zone.
+  for(const c of cores){if(c.id===own||c.mode!=='idle')continue;const d=Math.hypot(x-c.x,y-c.y),safe=c.r+Math.max(w*.28,24);if(d<safe)score+=(safe-d)*13;}
+  if(score<bestScore){bestScore=score;best={dx,dy};if(score<1.5)break;}
+ }
+ if(!best){
+  const i=hash(seedKey*.00013),a=i*Math.PI*2;
+  best={dx:Math.cos(a)*maxR*.56,dy:Math.sin(a)*maxR*.56};
+ }
+ const p={key,owner:own,dx:best.dx,dy:best.dy,w,h};places.set(key,p);return p;
+}
+function chip(it){
+ const el=document.createElement('button');el.className='tag';el.type='button';el.style.opacity='0';el.style.pointerEvents='none';el.style.transform='translate3d(-2000px,-2000px,0) scale(.74)';el.dataset.type=it.type;el.dataset.key=keyOf(it);el.dataset.owner=typeOwner(it.type);el.setAttribute('aria-pressed',isPicked(it)?'true':'false');
+ const icon=document.createElement('span'),name=document.createElement('span');name.className='tag-name';name.textContent=it.name;
+ if(it.type==='mood'){icon.className='dot';icon.style.setProperty('--dot',it.color)}
+ else if(it.type==='artist'){icon.className='artist-ico';icon.textContent=it.name.charAt(0).toUpperCase()}
+ else{icon.className='music-ico';icon.textContent='♫'}
+ el.append(icon,name);el.title=it.type==='track'?it.name+' — '+it.sub:it.name;
+ el.onclick=()=>selectChip(it);if(it.type==='artist'){artistHold(el,it);el.title+=' · удерживай для хитов'}tagLayer.append(el);return el;
+}
+function renderWorld(){
+ if(!worldInit)return;
+ const {items,r}=getItems(),now=performance.now(),want=new Set(items.map(keyOf));
+ // First vacate stale destinations; this happens BEFORE planning the new placements.
+ for(const obj of liveTags.values())if(!want.has(obj.key)&&obj.phase!=='exit'){
+  obj.phase='exit';obj.phaseTime=now;obj.exitX=obj.lastX??cores[obj.owner].x;obj.exitY=obj.lastY??cores[obj.owner].y;
+ }
+ const incoming={0:0,1:0,2:0};
+ const changingMood=moodChangeAt>=0&&now-moodChangeAt<350;
+ for(const it of items){
+  const key=keyOf(it),owner=typeOwner(it.type);
+  let obj=liveTags.get(key);
+  if(!obj){
+   const el=chip(it);
+   // A soft, ordered ripple: each new label already knows its destination.
+   // After a mood change, outgoing tracks/artists disappear before newcomers bloom.
+   const wave=incoming[owner]++;
+   const delay=(changingMood&&owner!==0?245:45)+wave*(owner===0?35:47);
+   obj={el,item:it,key,owner,place:place(it),phase:'enter',born:now,delay,phaseTime:0};
+   liveTags.set(key,obj);
+  }else{
+   obj.item=it;
+   if(obj.phase==='exit'){
+    obj.phase='enter';obj.born=now;obj.delay=changingMood&&owner!==0?245:45;
+    obj.occlusion=0;
+   }
+  }
+  obj.el.classList.toggle('is-selected',isPicked(it));
+  obj.el.classList.toggle('is-saved',(it.type==='track'&&selectedSongs.has(Number(it.id)))||(it.type==='artist'&&selectedArtists.has(it.id)));
+  obj.el.classList.toggle('is-focus',!!focusItem&&keyOf(focusItem)===key);
+  obj.el.setAttribute('aria-pressed',isPicked(it)?'true':'false');
+ }
+ // Never create tags for unbroken cores. Changing moods merely updates the catalogue in memory.
+ const active=currentMood();
+ status.textContent=active?`Сейчас: ${active} · сохранено ${selectedSongs.size} песен, ${selectedArtists.size} исполнителей`:opened.has(0)?'Выбери настроение':'Начни с ядра настроения';
+ note.textContent=active&&!opened.has(1)&&!opened.has(2)?'Теперь разбей «Музыку» или «Исполнителей»':active&&(opened.has(1)||opened.has(2))?'Меняй настроение — новые капли, сохранённое внизу':!active&&(opened.has(1)||opened.has(2))?'Выбери настроение — сохранённое внизу':'';
+ updateChosen();more.style.display=opened.size?'block':'none';
+}
+function updateChosen(){
+ const previousScroll=chosen.scrollLeft;
+ const oldMax=chosen.scrollWidth-chosen.clientWidth;
+ const nearEnd=oldMax<8||previousScroll>=oldMax-24;
+ chosen.replaceChildren();let list=[...activeMoods].map(n=>({label:'Настроение: '+n,type:'mood',id:n}));
+ list.push(...[...selectedSongs].map(id=>({label:SONGS[id]?.title||'Трек',type:'track',id})),...[...selectedArtists].map(n=>({label:n,type:'artist',id:n})));
+ savedCount.textContent=String(list.length);
+ for(const item of list){
+  const pill=document.createElement('div');pill.className='saved-pill';pill.dataset.savedType=item.type;
+  const open=document.createElement('button');open.className='saved-open';open.type='button';
+  open.textContent=(item.type==='track'?'♫ ':item.type==='artist'?'● ':'')+item.label;
+  open.title=item.type==='track'?'Нажми, чтобы послушать и посмотреть похожие треки':item.type==='artist'?'Нажми, чтобы увидеть исполнителя':'Выбрано';
+  if(item.type==='track'){open.onclick=()=>startPreviewSong(SONGS[item.id],false)}
+  if(item.type==='artist'){open.onclick=()=>showArtist({id:item.id,name:item.id},open);artistHold(open,{type:'artist',id:item.id,name:item.id})}
+  if(item.type==='mood'){open.onclick=()=>{pages.mood=0;focusItem={type:'mood',id:item.id};renderWorld()}}
+  const remove=document.createElement('button');remove.className='saved-remove';remove.type='button';remove.textContent='×';
+  remove.setAttribute('aria-label','Удалить из выбранного: '+item.label);
+  remove.onclick=e=>{e.stopPropagation();toggleItem(item.type,item.id)};
+  pill.append(open,remove);chosen.append(pill);
+ }
+ const count=list.length;
+ const changed=count!==updateChosen.lastCount;updateChosen.lastCount=count;
+ chosen.scrollLeft=changed&&count>updateChosen.prevCount&&nearEnd?chosen.scrollWidth:previousScroll;
+ updateChosen.prevCount=count;
+ const max=chosen.scrollWidth-chosen.clientWidth;
+ savedControls.querySelector('.saved-left').disabled=chosen.scrollLeft<3;
+ savedControls.querySelector('.saved-right').disabled=chosen.scrollLeft>=max-3;
+}
+updateChosen.lastCount=0;updateChosen.prevCount=0;
+function toggleItem(type,id){
+ if(type==='mood'){
+  const old=currentMood();
+  closePreview();hideArtist();
+  activeMoods.clear();
+  if(old!==id)activeMoods.add(id); // One active mood at a time. Tap again to clear it.
+  pages.track=pages.artist=0;
+  moodChangeAt=performance.now(); // Give outgoing recommendations time to dissolve.
+  // Selected music and artists survive in the bottom strip, but never remain in the droplets.
+ }else{
+  const set=type==='track'?selectedSongs:selectedArtists;
+  if(set.has(id))set.delete(id);else set.add(id);
+ }
+ focusItem={type,id};renderWorld();
+}
+function selectChip(it){
+ // Selection never moves the selected item to centre or rearranges existing items.
+ const freshTrack=it.type==='track'&&!selectedSongs.has(Number(it.id));
+ focusItem=it;toggleItem(it.type,it.type==='track'?Number(it.id):it.id);
+ if(freshTrack)startPreviewSong(SONGS[Number(it.id)]);
+ results.style.display='none';
+}
+function cycle(){
+ const r=recommend(),mob=W<620,mid=W<870;
+ const nMood=mob?7:mid?10:13;
+ const pTrack=mob?5:mid?7:10;
+ const pArtist=mob?4:mid?5:8;
+ pages.mood=(pages.mood+1)%Math.max(1,Math.ceil((MOODS.length-(currentMood()?1:0))/(nMood-(currentMood()?1:0))));
+ pages.track=(pages.track+1)%Math.max(1,Math.ceil(r.tracks.filter(t=>!selectedSongs.has(t.id)).length/pTrack));
+ pages.artist=(pages.artist+1)%Math.max(1,Math.ceil(r.artists.filter(a=>!selectedArtists.has(a.name)).length/pArtist));
+ focusItem=null;renderWorld();
+}
+more.onclick=cycle;
+more.title='Следующие настроения, треки и исполнители — весь каталог остаётся доступным';
+more.setAttribute('aria-label','Показать следующие настроения, песни и исполнителей');
+function refreshSearch(){
+ results.replaceChildren();const q=normText(searchInput.value);
+ if(!q){results.style.display='none';return;}
+ const matches=[];
+ if(opened.has(0))matches.push(...MOODS.filter(m=>normText(m[0]).includes(q)).map(m=>({type:'mood',id:m[0],name:m[0]})));
+ const r=recommend();
+ if(opened.has(1)){
+  const sourceSongs=SONGS; // Explicit text search covers the full curated catalog, not just the active mood.
+  matches.push(...sourceSongs.filter(t=>normText(t.title+' '+t.artist).includes(q)).map(t=>({type:'track',id:String(t.id),name:t.title,sub:t.artist})));
+ }
+ if(opened.has(2)){const allArtists=new Set(SONGS.map(t=>t.artist));matches.push(...[...allArtists].filter(name=>normText(name).includes(q)).map(name=>({type:'artist',id:name,name})));}
+ for(const it of matches.slice(0,8)){
+  const b=document.createElement('button');b.type='button';const nm=document.createElement('span');nm.textContent=it.name;
+  const typ=document.createElement('small');typ.textContent=it.type==='mood'?'Настроение':it.type==='track'?it.sub:'Исполнитель';
+  const row=document.createElement('div');row.className='liquid-result-row';row.style.setProperty('--result-index',String(results.children.length));row.classList.toggle('is-picked',isPicked(it));
+   b.className='liquid-result-open';b.setAttribute('aria-label','Показать в мире: '+it.name);
+   const icon=document.createElement('span');icon.className='liquid-result-icon';icon.setAttribute('aria-hidden','true');icon.textContent=it.type==='track'?'♫':it.type==='artist'?'◉':'◇';
+   const copy=document.createElement('span');copy.className='liquid-result-copy';copy.append(nm,typ);
+   const arrow=document.createElement('span');arrow.className='liquid-result-arrow';arrow.setAttribute('aria-hidden','true');arrow.textContent='›';
+   b.append(icon,copy,arrow);b.onclick=()=>{
+   searchInput.value='';results.style.display='none';searchInput.blur();
+   const key=keyOf(it);let obj=liveTags.get(key);
+   if(!obj){ // Search may expose an item from a later page, within that core only.
+    const owner=typeOwner(it.type),src=cores[owner];
+    const entry={...it,color:MOODS.find(m=>m[0]===it.id)?.[1]};
+    const el=chip(entry);obj={el,item:entry,key,owner,place:place(entry),phase:'enter',born:performance.now(),delay:0,phaseTime:0};liveTags.set(key,obj);
+    // Keep searched item visible until the next explicit page / mood update.
+    pinnedSearch=entry;
+   }
+   focusItem=it;for(const o of liveTags.values())o.el.classList.toggle('is-focus',o.key===key);
+   obj.el.focus({preventScroll:true});
+  };
+   const pick=document.createElement('button');pick.type='button';pick.className='liquid-result-pick';pick.dataset.type=it.type;pick.dataset.id=it.id;
+   const paintPick=()=>{const picked=isPicked(it);pick.textContent=picked?'✓':'+';pick.setAttribute('aria-pressed',String(picked));pick.setAttribute('aria-label',(picked?'Убрать: ':'Выбрать: ')+it.name);row.classList.toggle('is-picked',picked)};
+   paintPick();
+   pick.onclick=()=>{if(!opened.has(typeOwner(it.type)))return;toggleItem(it.type,it.type==='track'?Number(it.id):it.id);paintPick();if(it.type==='mood'){for(const other of results.querySelectorAll('.liquid-result-pick[data-type="mood"]')){if(other===pick)continue;const on=activeMoods.has(other.dataset.id);other.textContent=on?'✓':'+';other.setAttribute('aria-pressed',String(on));other.setAttribute('aria-label',(on?'Убрать: ':'Выбрать: ')+other.dataset.id);other.closest('.liquid-result-row').classList.toggle('is-picked',on)}}};
+   row.append(b,pick);results.append(row);
+ }
+ if(!matches.length){const msg=document.createElement('span');msg.textContent=!opened.size?'Сначала разбей нужную сферу':'Ничего не найдено — попробуй другое название или исполнителя';msg.className='no-results';results.append(msg)}
+ results.style.display='flex';
+}
+let pinnedSearch=null;
+searchInput.addEventListener('input',refreshSearch);
+searchInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();results.querySelector('button')?.click()}if(e.key==='Escape'){searchInput.value='';results.style.display='none'}});
+searchClear.onclick=()=>{searchInput.value='';results.style.display='none';searchInput.focus()};
+function fitLivingSearch(){if(!window.visualViewport)return;const vh=window.visualViewport.height,occluded=Math.max(0,window.innerHeight-vh-window.visualViewport.offsetTop);root.style.setProperty('--liquid-search-available',Math.max(76,Math.floor(vh*.31))+'px');searchBox.style.bottom=occluded>80?(occluded+8)+'px':'';}window.visualViewport?.addEventListener('resize',fitLivingSearch);window.visualViewport?.addEventListener('scroll',fitLivingSearch);
+function worldFrame(dt){
+ if(!worldInit)return;
+ if(cores.every(c=>c.mode==='idle')&&opened.size===0&&liveTags.size){clearWorld();return}
+ frameClock+=dt;
+ if(Math.abs(W-lastLayoutW)>12||Math.abs(H-lastLayoutH)>12){lastLayoutW=W;lastLayoutH=H;places.clear();for(const obj of liveTags.values()){obj.place=place(obj.item);obj.measuredW=0;obj.measuredH=0;obj.drawX=null;obj.drawY=null;}}
+ const now=performance.now(),visuals=[];
+ if(pinnedSearch){const key=keyOf(pinnedSearch);if(!liveTags.has(key))pinnedSearch=null}
+ for(const [key,obj] of liveTags){
+  const c=cores[obj.owner],p=obj.place,z=zone(obj.owner);
+  const maxR=Math.max(5,z.r-Math.hypot(p.w*.5,p.h*.5)-9),pr=Math.hypot(p.dx,p.dy),ratio=pr>maxR?maxR/pr:1;
+  const baseX=c.x+p.dx*ratio,baseY=c.y+p.dy*ratio;
+  const floatX=Math.sin(frameClock*.58+obj.owner*2.21+obj.key.length)*.9;
+  const floatY=Math.cos(frameClock*.62+obj.owner*1.17+obj.key.length*.7)*.9;
+  let x=baseX+floatX,y=baseY+floatY,scale=1,alpha=1,blur=0;
+  if(obj.phase==='enter'){
+   // The old trajectory launched every label from the exact core centre. On mood
+   // changes those paths crossed existing labels and shoved them around.
+   // Instead, emerge near the FINAL free spot in a soft staggered radial wave.
+   const progress=C((now-obj.born-obj.delay)/490,0,1);
+   const k=progress*progress*(3-2*progress);
+   const radialX=baseX-c.x,radialY=baseY-c.y;
+   const rad=Math.max(1,Math.hypot(radialX,radialY));
+   const offset=Math.min(38,rad*.32);
+   x=baseX-radialX/rad*offset*(1-k);
+   y=baseY-radialY/rad*offset*(1-k);
+   scale=.72+.28*k;
+   alpha=S(progress*1.95);
+   blur=(1-k)*2.4;
+   if(progress>=1){obj.phase='idle';obj.safeX=x;obj.safeY=y}
+  }else if(obj.phase==='exit'){
+   const k=C((now-obj.phaseTime)/390,0,1);
+   // Retiring labels softly contract at their own coordinates, not into the core.
+   x=obj.exitX;y=obj.exitY;scale=1-.22*ease(k);alpha=1-ease(k);blur=k*2.5;
+   if(k>=1){obj.el.remove();liveTags.delete(key);places.delete(key);continue}
+  }
+  if(obj.phase==='idle'){
+   if(obj.safeX==null){obj.safeX=baseX;obj.safeY=baseY}
+   obj.safeX+=c.x-(obj.lastCoreX??c.x);obj.safeY+=c.y-(obj.lastCoreY??c.y);
+   const follow=Math.min(1,dt*.72);
+   obj.safeX+=(baseX+floatX-obj.safeX)*follow;
+   obj.safeY+=(baseY+floatY-obj.safeY)*follow;
+   x=obj.safeX;y=obj.safeY;
+  }
+  obj.lastCoreX=c.x;obj.lastCoreY=c.y;
+  if(!obj.measuredW){obj.measuredW=obj.el.offsetWidth||p.w;obj.measuredH=obj.el.offsetHeight||p.h;}
+  visuals.push({obj,x,y,scale,alpha,c,w:obj.measuredW,h:obj.measuredH,stable:obj.phase==='idle'});
+ }
+ // Labels float in their own zones, but cannot cover other labels.
+ // Resolving only the UI avoids changing the original liquid-metal simulation.
+ const visible=visuals.filter(v=>v.alpha>.68&&v.obj.phase!=='exit');
+ function bound(v){
+  const pad=8,minY=Math.max(92,H*.145)+v.h*.5,maxY=H-(W<620?Math.max(180,H*.22):Math.max(103,H*.155))-v.h*.5;
+  v.x=C(v.x,v.w*.5+pad,Math.max(v.w*.5+pad,W-v.w*.5-pad));
+  v.y=C(v.y,minY,Math.max(minY,maxY));
+  const z=zone(v.obj.owner),range=Math.max(15,z.r-Math.hypot(v.w*.5,v.h*.5)-6);
+  const dx=v.x-v.c.x,dy=v.y-v.c.y,r=Math.hypot(dx,dy);
+  if(r>range){v.x=v.c.x+dx*range/r;v.y=v.c.y+dy*range/r}
+  v.x=C(v.x,v.w*.5+pad,Math.max(v.w*.5+pad,W-v.w*.5-pad));
+  v.y=C(v.y,minY,Math.max(minY,maxY));
+ }
+ for(const v of visible)if(v.stable)bound(v);
+ for(let pass=0;pass<12;pass++){
+  let collisions=0;
+  for(let i=0;i<visible.length;i++)for(let j=i+1;j<visible.length;j++){
+   const a=visible[i],b=visible[j];
+   if(!a.stable||!b.stable)continue;
+   const overlapX=(a.w*a.scale+b.w*b.scale)*.5+8-Math.abs(a.x-b.x);
+   const overlapY=(a.h*a.scale+b.h*b.scale)*.5+8-Math.abs(a.y-b.y);
+   if(overlapX<=0||overlapY<=0)continue;
+   collisions++;
+   const dx=Math.sign(a.x-b.x)||((i+j)%2?1:-1),dy=Math.sign(a.y-b.y)||((i+j)%2?-1:1);
+   const aShare=a.stable?(b.stable?.5:1):0,bShare=b.stable?(a.stable?.5:1):0;
+   if(overlapX<overlapY*1.2){a.x+=dx*overlapX*aShare*1.05;b.x-=dx*overlapX*bShare*1.05}
+   else{a.y+=dy*overlapY*aShare*1.05;b.y-=dy*overlapY*bShare*1.05}
+  }
+  for(const v of visible)if(v.stable)bound(v);
+  if(!collisions)break;
+ }
+ // Entering labels travel out of a core. Temporarily fade them behind an
+ // existing label rather than drawing one readable title on top of another.
+ // This affects label opacity ONLY, not WebGL particles or any core physics.
+ const occupied=[];
+ for(const v of [...visuals].sort((a,b)=>Number(b.stable)-Number(a.stable))){
+  if(v.alpha<.65||v.obj.phase==='exit')continue;
+  const conflicting=occupied.some(u=>
+   Math.abs(v.x-u.x)<(v.w*v.scale+u.w*u.scale)*.5+3 &&
+   Math.abs(v.y-u.y)<(v.h*v.scale+u.h*u.scale)*.5+3);
+  const desired=conflicting?0:1;
+  v.obj.occlusion=(v.obj.occlusion??0)+(desired-(v.obj.occlusion??0))*Math.min(1,dt*13);
+  v.alpha*=v.obj.occlusion;
+  if(!conflicting)occupied.push(v);
+ }
+ for(const v of visuals){
+  const {obj,x,y,scale,alpha}=v;
+  obj.lastX=x;obj.lastY=y;
+  if(v.stable){obj.safeX=x;obj.safeY=y}
+  // Keep the visual ripple, but don't force the browser to repaint every label
+  // for subpixel motion or re-rasterize dynamic CSS filters over WebGL.
+  const px=Math.round(x),py=Math.round(y),sc=Math.round(scale*1000);
+  if(obj.drawX!==px||obj.drawY!==py||obj.drawScale!==sc){
+   obj.el.style.transform=`translate3d(${px}px,${py}px,0) translate(-50%,-50%) scale(${(sc/1000).toFixed(3)})`;
+   obj.drawX=px;obj.drawY=py;obj.drawScale=sc;
+  }
+  const opacity=Math.round(alpha*1000);
+  if(obj.drawAlpha!==opacity){obj.el.style.opacity=(opacity/1000).toFixed(3);obj.drawAlpha=opacity;}
+  const interactive=alpha>.7&&obj.phase!=='exit';
+  if(obj.drawInteractive!==interactive){obj.el.style.pointerEvents=interactive?'auto':'none';obj.drawInteractive=interactive;}
+ }
+}
+
+// Non-mutating diagnostics for verifying the mood-to-saved-selection behavior.
+window.__betaV40=()=>({preview:currentPreview?.title||null,artistCard:activeArtistCard||null,activeMood:currentMood(),selectedSongs:[...selectedSongs].map(i=>SONGS[i]?.title),selectedArtists:[...selectedArtists],recommendedSongs:matchingSongs().map(t=>t.title),recommendedArtists:recommend().artists.map(a=>a.name),opened:[...opened],visible:[...liveTags.values()].filter(x=>x.phase!=='exit').map(x=>x.key)});
+window.__betaV40TagMotion=()=>[...liveTags.values()].map(o=>({key:o.key,phase:o.phase,x:o.lastX,y:o.lastY,alpha:Number(o.el.style.opacity||0),owner:o.owner}));
+function local(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]}
+cv.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;cv.setPointerCapture(e.pointerId);const [x,y]=local(e),now=performance.now();let target=-1,best=999;for(const c of cores){if(c.mode!=='idle')continue;const d=Math.hypot(x-c.x,y-c.y)/c.r;if(d<1.17&&d<best){best=d;target=c.id;}}Object.assign(ptr,{down:true,target,drag:false,x,y,startX:x,startY:y,vx:0,vy:0,at:now});if(target<0)for(const c of cores){if(c.mode!=='burst')continue;for(const p of c.parts){const dx=p.x-x,dy=p.y-y,d=Math.hypot(dx,dy);if(d<c.r*1.5){const f=(1-d/(c.r*1.5))*4*c.r;p.vx+=dx/(d+.01)*f;p.vy+=dy/(d+.01)*f;}}}});
+cv.addEventListener('pointermove',e=>{if(!ptr.down)return;const [x,y]=local(e),now=performance.now(),dt=C((now-ptr.at)/1000,.008,.1);ptr.vx=C((x-ptr.x)/dt,-1100,1100);ptr.vy=C((y-ptr.y)/dt,-1100,1100);ptr.x=x;ptr.y=y;ptr.at=now;if(Math.hypot(x-ptr.startX,y-ptr.startY)>6)ptr.drag=true;});
+function up(e){if(!ptr.down)return;const target=ptr.target,drag=ptr.drag;ptr.down=false;ptr.vx=ptr.vy=0;ptr.target=-1;if(target>=0&&!drag){if(selected===target)burst(cores[target]);else select(target);}try{cv.releasePointerCapture(e.pointerId)}catch(_){}}
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+resize();new ResizeObserver(resize).observe(root);updateHint();initWorld();
+function frame(now){if(!root.isConnected)return;requestAnimationFrame(frame);if(!prev){prev=now;render();return}const elapsed=now-prev;if(elapsed<20)return;prev=now;const dt=Math.min(elapsed/1000,.06),steps=Math.ceil(dt/.009);for(let i=0;i<steps;i++)integrate(dt/steps);render();worldFrame(dt);fpsFrames++;fpsSpan+=elapsed;if(fpsSpan>4400){const fps=fpsFrames*1000/fpsSpan;if(fps<23&&quality>.67){quality*=.89;resize();}else if(fps>39&&quality<.99){quality=Math.min(1,quality*1.06);resize();}fpsFrames=fpsSpan=0;}}requestAnimationFrame(frame);
+}catch(e){console.error(e);error.style.display='grid';error.textContent='Ошибка запуска жидкого металла: '+e.message;}
+})();
+</script></body></html>
