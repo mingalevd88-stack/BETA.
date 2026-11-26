@@ -94,3 +94,28 @@ class IdentityPreviewQA(unittest.TestCase):
         expect(p.locator('[data-action="id-studio-category"][aria-pressed=true]')).to_have_count(1)
         expect(p.locator('[data-id-setting="idNav"]')).to_be_attached()
         expect(p.locator('[data-studio-category="material"]').first).to_be_hidden()
+
+    def test_slider_pointer_commit_and_vertical_cancel(self):
+        p=self.page
+        p.locator('[data-action="id-studio-category"][data-category="type"]').click()
+        slider=p.locator('[data-id-setting="idScale"]')
+        shell=slider.locator('..')
+        shell.scroll_into_view_if_needed()
+        rail=shell.locator('.id-rail')
+        box=rail.bounding_box()
+        x=box['x']+box['width']*.3
+        y=box['y']+box['height']/2
+        initial=slider.input_value()
+        p.mouse.move(x,y)
+        p.mouse.down()
+        expect(slider).to_have_value(initial)
+        p.mouse.move(x,y+30)
+        p.mouse.up()
+        expect(slider).to_have_value(initial)
+        p.mouse.move(x,y)
+        p.mouse.down()
+        p.mouse.move(box['x']+box['width']*.8,y,steps=8)
+        expect(slider).to_have_value(initial)
+        p.mouse.up()
+        expect(slider).to_have_value('118')
+        p.wait_for_function("document.documentElement.style.getPropertyValue('--id-font')==='1.18'")
