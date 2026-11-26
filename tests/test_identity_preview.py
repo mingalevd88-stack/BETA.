@@ -1,4 +1,4 @@
-"""Regression checks for the published Identity 0.3 preview."""
+"""Regression checks for the published Identity 0.6 preview."""
 import functools
 import http.server
 from pathlib import Path
@@ -43,6 +43,8 @@ class IdentityPreviewQA(unittest.TestCase):
 
     def test_font_sheet_selection_and_persistence(self):
         p=self.page
+        p.locator('[data-studio-category=type]').first.wait_for(state='attached')
+        p.locator('[data-action="id-studio-category"][data-category="type"]').click()
         trigger=p.get_by_role('button',name='Шрифт: Beta',exact=True)
         trigger.click()
         sheet=p.locator('#id-choice-sheet')
@@ -57,12 +59,14 @@ class IdentityPreviewQA(unittest.TestCase):
 
     def test_range_continuity_and_motion_toggle(self):
         p=self.page
+        p.locator('[data-action="id-studio-category"][data-category="type"]').click()
         slider=p.locator('[data-id-setting="idScale"]')
         expect(slider).to_have_attribute('step','1')
         slider.focus()
         slider.press('ArrowRight')
         expect(p.locator('[data-id-output="idScale"]')).to_have_text('101%')
         p.wait_for_function("document.documentElement.style.getPropertyValue('--id-font')==='1.01'")
+        p.locator('[data-action="id-studio-category"][data-category="motion"]').click()
         motion=p.locator('[data-action="toggle-motion"]')
         motion.click()
         expect(motion).to_have_attribute('aria-checked','false')
@@ -78,3 +82,15 @@ class IdentityPreviewQA(unittest.TestCase):
         p.locator('[data-action="id-profile-tab"][data-tab="import"]').click()
         expect(p.locator('.id-tabs')).to_have_attribute('style','--tab-index:2')
         expect(p.locator('.id-import')).to_be_visible()
+
+    def test_studio_presets_and_groups(self):
+        p=self.page
+        expect(p.locator('.id-stage')).to_be_visible()
+        expect(p.locator('[data-action="id-studio-category"]')).to_have_count(6)
+        p.locator('[data-action="id-studio-preset"][data-preset="deep"]').click()
+        expect(p.locator('html')).to_have_attribute('data-theme','deep')
+        p.wait_for_function("document.documentElement.style.getPropertyValue('--id-glass')==='0.96'")
+        p.locator('[data-action="id-studio-category"][data-category="nav"]').click()
+        expect(p.locator('[data-action="id-studio-category"][aria-pressed=true]')).to_have_count(1)
+        expect(p.locator('[data-id-setting="idNav"]')).to_be_attached()
+        expect(p.locator('[data-studio-category="material"]').first).to_be_hidden()
