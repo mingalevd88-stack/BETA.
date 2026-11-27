@@ -165,4 +165,18 @@ class BetaQA(unittest.TestCase):
         expect(self.page.locator('.theme-section')).to_be_hidden()
         self.assertEqual(self.errors,[])
 
+    def test_identity_display_name_persists(self):
+        self.page.goto(self.base+'/app/identity.html')
+        self.debug("typeof window.__betaPlayerDebug==='function' && !!document.querySelector('#main [data-action]')")
+        self.nav('settings')
+        self.page.locator('#identity-name').fill('QA <Beta>')
+        expect(self.page.locator('#identity-name-preview')).to_have_text('QA <Beta>')
+        self.page.reload()
+        self.debug("typeof window.__betaPlayerDebug==='function' && !!document.querySelector('#main [data-action]')")
+        self.nav('settings')
+        expect(self.page.locator('#identity-name')).to_have_value('QA <Beta>')
+        self.page.locator('#identity-name').fill('')
+        expect(self.page.locator('#identity-name-preview')).to_have_text('Моя Beta')
+        self.assertEqual(self.errors,[])
+
 if __name__=='__main__': unittest.main()
