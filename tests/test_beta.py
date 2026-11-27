@@ -134,6 +134,38 @@ class BetaQA(unittest.TestCase):
         expect(self.page.locator('[data-eq="0"]')).to_have_value('7')
         self.assertEqual(self.errors,[])
 
+    def test_unified_navigation_and_identity_profile(self):
+        self.page.goto(self.base+'/app/index.html')
+        self.page.wait_for_function("window.__betaIntegration && window.__betaIntegration().playerReady")
+        player=self.page.frame_locator('#player-frame')
+        expect(player.locator('.hero h1')).to_have_text('Твой мир')
+        expect(player.locator('.top-actions .profile')).to_have_count(0)
+        expect(player.locator('#player')).to_be_hidden()
+        enter=player.get_by_role('button',name='Открыть три 3D-ядра Liquid')
+        expect(enter).to_be_visible()
+        enter.click()
+        self.page.wait_for_function("window.__betaIntegration().screen==='liquid' && window.__betaIntegration().liquidReady")
+        expect(self.page.frame_locator('#liquid-frame').locator('#betaTrios canvas')).to_be_visible()
+        self.page.get_by_role('button',name='Вернуться на главный экран').click()
+        self.page.wait_for_function("window.__betaIntegration().screen==='player'")
+        expect(player.locator('.hero h1')).to_have_text('Твой мир')
+        player.locator('#bottomnav [data-action="nav"][data-view="settings"]').click()
+        expect(player.get_by_role('button',name='Персонализация')).to_be_visible()
+        self.assertEqual(self.errors,[])
+
+    def test_unified_liquid_selection_visible_without_fake_audio(self):
+        self.page.goto(self.base+'/app/index.html')
+        self.page.wait_for_function("window.__betaIntegration && window.__betaIntegration().playerReady")
+        self.page.evaluate("""() => localStorage.setItem('beta.liquid.selection.v1',
+            JSON.stringify({v:1,mood:'Ночь',songs:[0],tracks:[{title:'After Dark',artist:'Mr.Kitty'}],artists:['Mr.Kitty']}))""")
+        player=self.page.frame_locator('#player-frame')
+        player.locator('#bottomnav [data-action="nav"][data-view="home"]').click()
+        selection=player.locator('#liquid-selection')
+        expect(selection).to_be_visible()
+        expect(selection.get_by_text('After Dark — Mr.Kitty')).to_be_visible()
+        self.assertFalse(self.page.frame_locator('#player-frame').locator('#player').is_visible())
+        self.assertEqual(self.errors,[])
+
     def test_liquid_mood_core_opens_only_its_world(self):
         self.page.goto(self.base+'/app/liquid.html')
         self.page.wait_for_function("typeof window.__betaV40==='function'")
