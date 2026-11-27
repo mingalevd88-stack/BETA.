@@ -150,4 +150,19 @@ class BetaQA(unittest.TestCase):
         self.assertEqual(self.page.locator('.tag[data-type="artist"]').count(),0)
         self.assertEqual(self.errors,[])
 
+    def test_identity_tabs_and_empty_player(self):
+        self.page.goto(self.base+'/app/identity.html')
+        self.debug("typeof window.__betaPlayerDebug==='function' && !!document.querySelector('#main [data-action]')")
+        expect(self.page.locator('#player')).to_be_hidden()
+        expect(self.page.locator('a.identity-link')).to_have_attribute('href','liquid.html')
+        self.nav('settings')
+        expect(self.page.locator('.identity-profile')).to_be_visible()
+        self.page.locator('[data-identity-tab="appearance"]').click()
+        expect(self.page.locator('.theme-section')).to_be_visible()
+        expect(self.page.locator('.identity-profile')).to_be_hidden()
+        self.page.locator('[data-identity-tab="import"]').click()
+        expect(self.page.locator('#main [data-action="import"]')).to_be_visible()
+        expect(self.page.locator('.theme-section')).to_be_hidden()
+        self.assertEqual(self.errors,[])
+
 if __name__=='__main__': unittest.main()
