@@ -160,6 +160,7 @@ class BetaQA(unittest.TestCase):
         stored=self.page.evaluate("JSON.parse(localStorage.getItem('beta.liquid.selection.v1'))")
         self.assertIsNone(stored['mood'])
         self.assertEqual(stored['songs'],[0])
+        self.assertEqual(stored['tracks'],[{'title':'After Dark','artist':'Mr.Kitty'}])
         self.assertEqual(stored['artists'],['Mr.Kitty'])
         self.assertEqual(self.errors,[])
 
