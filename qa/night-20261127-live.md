@@ -1,0 +1,3 @@
+# Identity live draft — 2026-11-27
+
+Baseline: beta-identity-night-20261126-slider. Problem: drag updates the knob but not the visual sample until release. Added frame-coalesced stage-local CSS overrides for text size, radius, search shape, navigation and icon sizes. Overrides removed on commit/cancel; existing settings persistence unchanged. JS syntax and three isolated helper assertions passed. Browser regression added, not executed here. CI lookup for latest searched commit returned no PR-triggered runs; no new CI success claimed. Glass density live draft, real touch performance and deployment remain unverified. No merge or production preview update.
