@@ -119,3 +119,25 @@ class IdentityPreviewQA(unittest.TestCase):
         p.mouse.up()
         expect(slider).to_have_value('118')
         p.wait_for_function("document.documentElement.style.getPropertyValue('--id-font')==='1.18'")
+
+    def test_stage_draft_is_local_and_cancelled(self):
+        p=self.page
+        p.locator('[data-action="id-studio-category"][data-category="type"]').click()
+        slider=p.locator('[data-id-setting="idScale"]')
+        shell=slider.locator('..')
+        shell.scroll_into_view_if_needed()
+        box=shell.locator('.id-rail').bounding_box()
+        x=box['x']+box['width']*.3
+        y=box['y']+box['height']/2
+        initial=slider.input_value()
+        root=p.evaluate("document.documentElement.style.getPropertyValue('--id-font')")
+        p.mouse.move(x,y)
+        p.mouse.down()
+        p.mouse.move(box['x']+box['width']*.8,y,steps=8)
+        p.wait_for_function("document.querySelector('.id-stage').style.getPropertyValue('--id-font')==='1.18'")
+        expect(slider).to_have_value(initial)
+        self.assertEqual(root,p.evaluate("document.documentElement.style.getPropertyValue('--id-font')"))
+        shell.evaluate("(el) => el.dispatchEvent(new PointerEvent('pointercancel',{pointerId:1,bubbles:true}))")
+        p.mouse.up()
+        expect(slider).to_have_value(initial)
+        p.wait_for_function("!document.querySelector('.id-stage').style.getPropertyValue('--id-font')")
