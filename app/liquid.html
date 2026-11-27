@@ -1098,7 +1098,7 @@ const activeMoods=new Set(),selectedSongs=new Set(),selectedArtists=new Set();
 // Small, versioned bridge for future Liquid -> Player integration. No audio files are stored here.
 const LIQUID_SELECTION_KEY='beta.liquid.selection.v1';
 function saveSelection(){
- try{localStorage.setItem(LIQUID_SELECTION_KEY,JSON.stringify({v:1,mood:currentMood(),songs:[...selectedSongs],artists:[...selectedArtists]}))}
+ try{localStorage.setItem(LIQUID_SELECTION_KEY,JSON.stringify({v:1,mood:currentMood(),songs:[...selectedSongs],tracks:[...selectedSongs].map(id=>SONGS[id]).filter(Boolean).map(({title,artist})=>({title,artist})),artists:[...selectedArtists]}))}
  catch(e){console.warn('BETA Liquid: selection could not be saved',e)}
 }
 function restoreSelection(){
