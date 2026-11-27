@@ -345,7 +345,7 @@ function select(id){selected=id;cores.forEach(c=>c.focus=c.id===id);labelMain.te
 function spawn(c){c.parts=[];const r=c.r*.315;for(let a=-3;a<=3;a++)for(let b=-3;b<=3;b++)for(let d=-3;d<=3;d++){if(Math.hypot(a,b,d)>2.9)continue;const jitter=r*.085,rx=a*r+rand(-jitter,jitter),ry=b*r+rand(-jitter,jitter),rz=d*r+rand(-jitter,jitter);c.parts.push({x:c.x+rx,y:c.y+ry,z:rz,vx:c.vx,vy:c.vy,vz:0,fx:0,fy:0,fz:0,mass:rand(.82,1.2),size:rand(.85,1.14),rest:[rx,ry,rz],id:c.id});}c.total=c.parts.reduce((v,p)=>v+p.mass,0);}
 function burst(c){if(c.mode!=='idle')return;spawn(c);c.jets=[];const n=5+c.id+Math.floor(rand(0,3));for(let i=0;i<n;i++){let a=rand(0,V),z=rand(-.7,.7),h=Math.sqrt(1-z*z);c.jets.push({d:[Math.cos(a)*h,Math.sin(a)*h,z],power:rand(1,3.5),delay:rand(.01,.24)});}c.mode='burst';c.age=0;c.focus=false;selected=-1;label.style.opacity='0';updateHint();onBreak(c.id);}
 function gather(){for(const c of cores){if(c.mode!=='burst')continue;onGather(c.id);c.mode='gather';c.gatherTime=0;c.absorbed=0;let idx=0,best=Infinity;for(let i=0;i<c.parts.length;i++){const p=c.parts[i],d=Math.hypot(p.x-c.x,p.y-c.y);if(d<best){best=d;idx=i}}if(c.parts.length){const p=c.parts.splice(idx,1)[0];c.absorbed=p.mass;c.x=p.x;c.y=p.y;}c.grow=c.r*Math.cbrt(c.absorbed/c.total);}updateHint();}
-function reset(){selected=-1;label.style.opacity='0';const a=anchors(W,H);for(const c of cores){c.homeX=W*a[c.id][0];c.homeY=H*a[c.id][1];c.x=c.homeX;c.y=c.homeY;c.vx=c.vy=0;c.mode='idle';c.focus=false;c.parts=[];c.grow=0;c.absorbed=0;c.age=0;c.shape=0;c.impact=0;c.bendX=c.bendY=c.bendVX=c.bendVY=0;c.hitX=c.hitY=c.pressX=c.pressY=0;c.ring.fill(0);c.ringV.fill(0);c.ringNext.fill(0);}for(const link of bonds)link.v=0;updateHint();clearWorld();}
+function reset(){selected=-1;label.style.opacity='0';const a=anchors(W,H);for(const c of cores){c.homeX=W*a[c.id][0];c.homeY=H*a[c.id][1];c.x=c.homeX;c.y=c.homeY;c.vx=c.vy=0;c.mode='idle';c.focus=false;c.parts=[];c.grow=0;c.absorbed=0;c.age=0;c.shape=0;c.impact=0;c.bendX=c.bendY=c.bendVX=c.bendVY=0;c.hitX=c.hitY=c.pressX=c.pressY=0;c.ring.fill(0);c.ringV.fill(0);c.ringNext.fill(0);}for(const link of bonds)link.v=0;updateHint();clearWorld();try{localStorage.removeItem(LIQUID_SELECTION_KEY)}catch{}}
 gatherBtn.addEventListener('click',gather);restartBtn.addEventListener('click',reset);
 function coreRadius(c){if(c.mode==='burst')return c.r*(1-S(c.age/(.29+.035*c.id)));if(c.mode==='gather')return c.grow;return c.r*(1+(c.focus?.025:0)+.004*Math.sin(T*1.32+c.phase));}
 function integrate(dt){
@@ -813,7 +813,7 @@ function showTrackDiscovery(song){
   listen.onclick=()=>{hideTrackDetail();startPreviewSong(t)};
   const add=document.createElement('button');add.type='button';add.className='track-sim-add';add.textContent=selectedSongs.has(t.id)?'✓':'+';
   add.setAttribute('aria-label',selectedSongs.has(t.id)?'Уже в выбранном':'Добавить '+t.title+' в выбранное');
-  add.onclick=()=>{if(!selectedSongs.has(t.id)){selectedSongs.add(t.id);renderWorld();add.textContent='✓';add.setAttribute('aria-label','Уже в выбранном')}else{selectedSongs.delete(t.id);renderWorld();add.textContent='+';add.setAttribute('aria-label','Добавить в выбранное')}};
+  add.onclick=()=>{if(!selectedSongs.has(t.id)){selectedSongs.add(t.id);saveSelection();renderWorld();add.textContent='✓';add.setAttribute('aria-label','Уже в выбранном')}else{selectedSongs.delete(t.id);saveSelection();renderWorld();add.textContent='+';add.setAttribute('aria-label','Добавить в выбранное')}};
   row.append(listen,add);trackSimilar.append(row);
  }
  trackDetail.classList.add('open');
@@ -1095,6 +1095,27 @@ chosen.addEventListener('scroll',()=>{
 
 actions.appendChild(more); // One compact toolbar, so controls do not cover a world.
 const activeMoods=new Set(),selectedSongs=new Set(),selectedArtists=new Set();
+// Small, versioned bridge for future Liquid -> Player integration. No audio files are stored here.
+const LIQUID_SELECTION_KEY='beta.liquid.selection.v1';
+function saveSelection(){
+ try{localStorage.setItem(LIQUID_SELECTION_KEY,JSON.stringify({v:1,mood:currentMood(),songs:[...selectedSongs],artists:[...selectedArtists]}))}
+ catch(e){console.warn('BETA Liquid: selection could not be saved',e)}
+}
+function restoreSelection(){
+ try{
+  const data=JSON.parse(localStorage.getItem(LIQUID_SELECTION_KEY)||'null');
+  if(!data||data.v!==1)return;
+  if(typeof data.mood==='string'&&MOODS.some(m=>m[0]===data.mood))activeMoods.add(data.mood);
+  if(Array.isArray(data.songs))for(const id of data.songs.slice(0,200))
+   if(Number.isInteger(id)&&id>=0&&id<SONGS.length)selectedSongs.add(id);
+  if(Array.isArray(data.artists)){
+   const knownArtists=new Set(SONGS.map(song=>song.artist));
+   for(const artist of data.artists.slice(0,100))
+    if(typeof artist==='string'&&knownArtists.has(artist))selectedArtists.add(artist);
+  }
+ }catch(e){console.warn('BETA Liquid: selection could not be restored',e)}
+}
+
 let opened=new Set(),liveTags=new Map(),places=new Map(),focusItem=null,pages={mood:0,track:0,artist:0},worldInit=false,frameClock=0,lastLayoutW=0,lastLayoutH=0,moodChangeAt=-1;
 const KEYS=['mood','track','artist'];
 const keyOf=(it)=>it.type+':'+it.id;
@@ -1102,7 +1123,7 @@ const typeOwner=(type)=>type==='mood'?0:type==='artist'?2:1;
 const normText=s=>String(s).toLocaleLowerCase('ru').replace(/ё/g,'е').replace(/tvgerl/g,'tv girl').replace(/[\s._-]+/g,'').trim();
 const ease=x=>{x=C(x,0,1);return 1-Math.pow(1-x,3)};
 const hash=(n)=>{let x=Math.sin(n*127.1+82.13)*43758.5453;return x-Math.floor(x)};
-function initWorld(){worldInit=true;clearWorld()}
+function initWorld(){worldInit=true;clearWorld();restoreSelection()}
 function clearWorld(){
  closePreview();hideArtist();
  for(const obj of liveTags.values())obj.el.remove();liveTags.clear();places.clear();tagLayer.replaceChildren();opened.clear();activeMoods.clear();selectedSongs.clear();selectedArtists.clear();focusItem=null;pages={mood:0,track:0,artist:0};moodChangeAt=-1;
@@ -1282,7 +1303,7 @@ function toggleItem(type,id){
   const set=type==='track'?selectedSongs:selectedArtists;
   if(set.has(id))set.delete(id);else set.add(id);
  }
- focusItem={type,id};renderWorld();
+ focusItem={type,id};saveSelection();renderWorld();
 }
 function selectChip(it){
  // Selection never moves the selected item to centre or rearranges existing items.
