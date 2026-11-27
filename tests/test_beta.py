@@ -80,6 +80,21 @@ class BetaQA(unittest.TestCase):
         self.page.locator(f'[data-action="nav"][data-view="{view}"]:visible').first.click()
         self.debug(f"window.__betaPlayerDebug().view === '{view}'")
 
+    def test_player_displays_liquid_preferences_without_importing_audio(self):
+        self.page.goto(self.base+'/app/index.html')
+        seed={'v':1,'mood':'Ночь','tracks':[{'title':'After Dark','artist':'Mr.Kitty'},{'title':'<img src=x>','artist':'QA'}],'artists':['Mr.Kitty']}
+        self.page.evaluate('(data) => localStorage.setItem("beta.liquid.selection.v1", JSON.stringify(data))',seed)
+        self.open_player()
+        panel=self.page.locator('#liquid-selection')
+        expect(panel).to_contain_text('Ночь')
+        expect(panel).to_contain_text('After Dark — Mr.Kitty')
+        expect(panel).to_contain_text('<img src=x>')
+        expect(panel.locator('img')).to_have_count(0)
+        self.assertEqual(self.page.evaluate('window.__betaPlayerDebug().imported'),0)
+        self.assertEqual(self.page.evaluate('window.__betaPlayerDebug().liked'),0)
+        self.assertEqual(self.page.evaluate('JSON.parse(localStorage.getItem("beta.liquid.selection.v1"))'),seed)
+        self.assertEqual(self.errors,[])
+
     def test_home_mood_is_exclusive(self):
         self.open_player()
         moods=self.page.locator('#main [data-action="mood"]')
@@ -135,7 +150,7 @@ class BetaQA(unittest.TestCase):
         self.assertEqual(self.errors,[])
 
     def test_liquid_selection_restores_and_persists_edits(self):
-        # The selection contract is local to Liquid for now; Player does not consume it.
+        # Verify Liquid's persisted selection contract.
         self.page.goto(self.base+'/app/index.html')
         seed={'v':1,'mood':'Ночь','songs':[0,999999,-1,'bad'],'artists':['Mr.Kitty','Unknown Artist']}
         self.page.evaluate('(data) => localStorage.setItem("beta.liquid.selection.v1", JSON.stringify(data))',seed)
