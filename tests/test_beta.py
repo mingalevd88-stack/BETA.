@@ -151,6 +151,15 @@ class BetaQA(unittest.TestCase):
         expect(player.locator('.hero h1')).to_have_text('Твой мир')
         player.locator('#bottomnav [data-action="nav"][data-view="settings"]').click()
         expect(player.get_by_role('button',name='Персонализация')).to_be_visible()
+        # Re-enter Liquid from Home after visiting Identity; the iframe is recreated.
+        player.locator('#bottomnav [data-action="nav"][data-view="home"]').click()
+        enter.click()
+        self.page.wait_for_function("window.__betaIntegration().screen==='liquid' && window.__betaIntegration().liquidReady")
+        expect(self.page.frame_locator('#liquid-frame').locator('#betaTrios canvas')).to_be_visible()
+        self.page.get_by_role('button',name='Вернуться на главный экран').click()
+        self.page.wait_for_function("window.__betaIntegration().screen==='player'")
+        expect(player.locator('.hero h1')).to_have_text('Твой мир')
+        expect(self.page.locator('#liquid-frame')).to_be_hidden()
         self.assertEqual(self.errors,[])
 
     def test_unified_liquid_selection_visible_without_fake_audio(self):
