@@ -177,6 +177,14 @@ class BetaQA(unittest.TestCase):
         self.assertEqual(stored['songs'],[0])
         self.assertEqual(stored['tracks'],[{'title':'After Dark','artist':'Mr.Kitty'}])
         self.assertEqual(stored['artists'],['Mr.Kitty'])
+        # Gathering the cores is a visual action, not a selection reset.
+        self.page.locator('#betaTrios .gather').click()
+        self.debug("window.__betaV40().opened.length===0 && !document.querySelector('#betaTrios').classList.contains('immersed')")
+        self.assertEqual(self.page.evaluate('window.__betaV40().selectedSongs'),['After Dark'])
+        self.assertEqual(self.page.evaluate('window.__betaV40().selectedArtists'),['Mr.Kitty'])
+        self.assertEqual(self.page.evaluate("JSON.parse(localStorage.getItem('beta.liquid.selection.v1'))"),stored)
+        self.open_player()
+        expect(self.page.locator('#liquid-selection')).to_contain_text('After Dark — Mr.Kitty')
         self.assertEqual(self.errors,[])
 
     def test_liquid_mood_core_opens_only_its_world(self):
