@@ -150,4 +150,26 @@ class BetaQA(unittest.TestCase):
         self.assertEqual(self.page.locator('.tag[data-type="artist"]').count(),0)
         self.assertEqual(self.errors,[])
 
+
+    def test_preview_navigation_links(self):
+        # The preview must not send users to missing pages after a release.
+        self.page.goto(self.base+'/app/index.html')
+        expect(self.page.get_by_role('heading', name='BETA')).to_be_visible()
+        links = self.page.locator('main a[href]').evaluate_all(
+            '(items) => items.map((item) => item.getAttribute("href"))'
+        )
+        self.assertGreater(len(links), 0)
+        for href in links:
+            with self.subTest(target=href):
+                self.assertFalse(href.startswith(('http:', 'https:', '//')), 'Preview link must be local')
+                self.page.goto(self.base+'/app/index.html')
+                with self.page.expect_navigation(wait_until='domcontentloaded') as navigation:
+                    self.page.locator(f'main a[href="{href}"]').click()
+                response = navigation.value
+                self.assertIsNotNone(response)
+                self.assertEqual(response.status, 200, f'Broken preview link: {href}')
+                self.assertTrue(self.page.title().strip())
+        self.assertEqual(self.errors, [])
+
+
 if __name__=='__main__': unittest.main()
