@@ -80,6 +80,21 @@ class BetaQA(unittest.TestCase):
         self.page.locator(f'[data-action="nav"][data-view="{view}"]:visible').first.click()
         self.debug(f"window.__betaPlayerDebug().view === '{view}'")
 
+    def test_player_displays_liquid_preferences_without_importing_audio(self):
+        self.page.goto(self.base+'/app/index.html')
+        seed={'v':1,'mood':'Ночь','tracks':[{'title':'After Dark','artist':'Mr.Kitty'},{'title':'<img src=x>','artist':'QA'}],'artists':['Mr.Kitty']}
+        self.page.evaluate('(data) => localStorage.setItem("beta.liquid.selection.v1", JSON.stringify(data))',seed)
+        self.open_player()
+        panel=self.page.locator('#liquid-selection')
+        expect(panel).to_contain_text('Ночь')
+        expect(panel).to_contain_text('After Dark — Mr.Kitty')
+        expect(panel).to_contain_text('<img src=x>')
+        expect(panel.locator('img')).to_have_count(0)
+        self.assertEqual(self.page.evaluate('window.__betaPlayerDebug().imported'),0)
+        self.assertEqual(self.page.evaluate('window.__betaPlayerDebug().liked'),0)
+        self.assertEqual(self.page.evaluate('JSON.parse(localStorage.getItem("beta.liquid.selection.v1"))'),seed)
+        self.assertEqual(self.errors,[])
+
     def test_home_mood_is_exclusive(self):
         self.open_player()
         moods=self.page.locator('#main [data-action="mood"]')
@@ -132,6 +147,44 @@ class BetaQA(unittest.TestCase):
         self.debug('window.__betaPlayerDebug().nowOpen')
         self.page.locator('[data-action="eq-preset"][data-value="bass"]').click()
         expect(self.page.locator('[data-eq="0"]')).to_have_value('7')
+        self.assertEqual(self.errors,[])
+
+    def test_liquid_selection_restores_and_persists_edits(self):
+        # Verify Liquid's persisted selection contract.
+        self.page.goto(self.base+'/app/index.html')
+        seed={'v':1,'mood':'Ночь','songs':[0,999999,-1,'bad'],'artists':['Mr.Kitty','Unknown Artist']}
+        self.page.evaluate('(data) => localStorage.setItem("beta.liquid.selection.v1", JSON.stringify(data))',seed)
+        self.page.goto(self.base+'/app/liquid.html')
+        self.page.wait_for_function("typeof window.__betaV40==='function'")
+        self.assertEqual(self.page.evaluate('window.__betaV40().activeMood'),'Ночь')
+        self.assertEqual(self.page.evaluate('window.__betaV40().selectedSongs'),['After Dark'])
+        self.assertEqual(self.page.evaluate('window.__betaV40().selectedArtists'),['Mr.Kitty'])
+        self.page.reload()
+        self.page.wait_for_function("typeof window.__betaV40==='function'")
+        self.assertEqual(self.page.evaluate('window.__betaV40().activeMood'),'Ночь')
+        self.assertEqual(self.page.evaluate('window.__betaV40().selectedSongs'),['After Dark'])
+        # Open the mood core, remove the mood and confirm the edit is persisted.
+        box=self.page.locator('#betaTrios canvas').bounding_box()
+        portrait=box['width']<box['height']*.9
+        x=box['x']+box['width']*(.52 if portrait else .27)
+        y=box['y']+box['height']*(.30 if portrait else .50)
+        self.page.mouse.click(x,y); self.page.mouse.click(x,y)
+        self.debug('window.__betaV40().opened.includes(0)')
+        self.page.locator('.saved-remove[aria-label="Удалить из выбранного: Настроение: Ночь"]').click()
+        self.debug("window.__betaV40().activeMood===null")
+        stored=self.page.evaluate("JSON.parse(localStorage.getItem('beta.liquid.selection.v1'))")
+        self.assertIsNone(stored['mood'])
+        self.assertEqual(stored['songs'],[0])
+        self.assertEqual(stored['tracks'],[{'title':'After Dark','artist':'Mr.Kitty'}])
+        self.assertEqual(stored['artists'],['Mr.Kitty'])
+        # Gathering the cores is a visual action, not a selection reset.
+        self.page.locator('#betaTrios .gather').click()
+        self.debug("window.__betaV40().opened.length===0 && !document.querySelector('#betaTrios').classList.contains('immersed')")
+        self.assertEqual(self.page.evaluate('window.__betaV40().selectedSongs'),['After Dark'])
+        self.assertEqual(self.page.evaluate('window.__betaV40().selectedArtists'),['Mr.Kitty'])
+        self.assertEqual(self.page.evaluate("JSON.parse(localStorage.getItem('beta.liquid.selection.v1'))"),stored)
+        self.open_player()
+        expect(self.page.locator('#liquid-selection')).to_contain_text('After Dark — Mr.Kitty')
         self.assertEqual(self.errors,[])
 
     def test_liquid_mood_core_opens_only_its_world(self):
