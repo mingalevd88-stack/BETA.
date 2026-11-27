@@ -20,20 +20,14 @@
   try{const doc=player.contentDocument;const home=doc.querySelector('#bottomnav [data-action="nav"][data-view="home"]')||doc.querySelector('.nav [data-action="nav"][data-view="home"]');if(home)home.click();}catch(e){console.warn('BETA navigation',e)}
  }
  back.addEventListener('click',showPlayer);
- function addWorldEntry(){
-  try{
-   const doc=player.contentDocument;if(!doc)return;
-   const box=doc.querySelector('.hero .hero-buttons');if(!box||box.querySelector('[data-beta-open-world]'))return;
-   const button=doc.createElement('button');button.type='button';button.className='secondary';button.dataset.betaOpenWorld='1';button.textContent='✦ Открыть мой мир';button.setAttribute('aria-label','Открыть три 3D-ядра Liquid');
-   box.append(button);
-  }catch(e){console.warn('BETA world entry',e)}
- }
  player.addEventListener('load',()=>{
   try{
    const doc=player.contentDocument;
-   doc.addEventListener('click',event=>{const el=event.target;if(el&&el.closest&&el.closest('[data-beta-open-world]')){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();showLiquid();}},true);
-   new MutationObserver(addWorldEntry).observe(doc.getElementById('main')||doc.body,{subtree:true,childList:true});
-   addWorldEntry();
+   doc.addEventListener('click',event=>{const el=event.target;
+    if(el&&el.closest&&el.closest('[data-action="beta-open-world"]')){
+     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();showLiquid();
+    }
+   },true);
   }catch(e){console.error('BETA integration',e)}
  });
  window.__betaIntegration=()=>({screen:liquid.hidden?'player':'liquid',playerReady:!!player.contentWindow?.__betaPlayerDebug,liquidReady:!!liquid.contentWindow?.__betaV40,selected:!!localStorage.getItem('beta.liquid.selection.v1')});
