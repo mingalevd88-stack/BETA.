@@ -182,6 +182,15 @@ class BetaQA(unittest.TestCase):
         expect(selection).to_be_visible()
         expect(selection.get_by_text('After Dark — Mr.Kitty')).to_be_visible()
         self.assertFalse(self.page.frame_locator('#player-frame').locator('#player').is_visible())
+        # A full shell reload must restore preferences without starting playback.
+        self.page.reload()
+        self.page.wait_for_function("window.__betaIntegration && window.__betaIntegration().playerReady")
+        selection=player.locator('#liquid-selection')
+        expect(selection).to_be_visible()
+        expect(selection.get_by_text('Ночь',exact=True)).to_be_visible()
+        expect(selection.get_by_text('After Dark — Mr.Kitty')).to_be_visible()
+        expect(selection.get_by_text('Исполнители: Mr.Kitty')).to_be_visible()
+        expect(player.locator('#player')).to_be_hidden()
         self.assertEqual(self.errors,[])
 
     def test_liquid_mood_core_opens_only_its_world(self):
