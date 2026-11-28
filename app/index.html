@@ -1,4 +1,35 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>BETA Preview</title><style>
-body{background:#08090c;color:#eef1f6;font:16px system-ui;margin:0;min-height:100vh;display:grid;place-items:center}main{width:min(85vw,420px)}h1{letter-spacing:.25em;font-weight:400}p{color:#9da8b8;line-height:1.5}a{display:block;color:inherit;border:1px solid #ffffff30;border-radius:20px;background:#171b23;padding:22px;margin:16px 0;text-decoration:none}small{color:#a5b3c6}
-</style></head><body><main><small>ТЕСТОВАЯ ВЕРСИЯ</small><h1>BETA</h1><p>Выбери экран для проверки.</p><a href="liquid.html">Liquid v40 →</a><a href="player.html">Signature · Плеер →</a><p>Два отдельных прототипа.</p></main></body></html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#030405"><title>BETA · объединённый тестовый билд</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030405;color:#edf2f8;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+#player-frame,#liquid-frame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#030405}
+#liquid-frame[hidden],#player-frame[hidden],#back[hidden]{display:none!important}
+#back{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:12px;z-index:20;display:flex;align-items:center;gap:8px;min-height:39px;border:1px solid #6b81968c;border-radius:999px;background:#111923ea;box-shadow:0 10px 24px #000a,inset 0 1px 0 #ffffff17;color:#edf3f7;padding:8px 14px;backdrop-filter:blur(20px);font:600 12px system-ui;cursor:pointer}
+#back span{font-size:23px;line-height:14px;margin-top:-3px}
+</style></head>
+<body>
+<iframe id="player-frame" src="../docs/index.html" title="BETA · плеер, профиль и персонализация" allow="autoplay; fullscreen"></iframe>
+<iframe id="liquid-frame" title="BETA · три 3D-ядра Liquid" hidden allow="autoplay; fullscreen"></iframe>
+<button id="back" type="button" hidden aria-label="Вернуться на главный экран"><span aria-hidden="true">‹</span> На главную</button>
+<script>
+(function(){
+ 'use strict';
+ const player=document.getElementById('player-frame'),liquid=document.getElementById('liquid-frame'),back=document.getElementById('back');
+ function showLiquid(){player.hidden=true;liquid.hidden=false;back.hidden=false;if(!liquid.getAttribute('src'))liquid.src='liquid.html';}
+ function showPlayer(){liquid.hidden=true;liquid.removeAttribute('src');back.hidden=true;player.hidden=false;
+  try{const doc=player.contentDocument;const home=doc.querySelector('#bottomnav [data-action="nav"][data-view="home"]')||doc.querySelector('.nav [data-action="nav"][data-view="home"]');if(home)home.click();}catch(e){console.warn('BETA navigation',e)}
+ }
+ back.addEventListener('click',showPlayer);
+ player.addEventListener('load',()=>{
+  try{
+   const doc=player.contentDocument;
+   doc.addEventListener('click',event=>{const el=event.target;
+    if(el&&el.closest&&el.closest('[data-action="beta-open-world"]')){
+     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();showLiquid();
+    }
+   },true);
+  }catch(e){console.error('BETA integration',e)}
+ });
+ window.__betaIntegration=()=>({screen:liquid.hidden?'player':'liquid',playerReady:!!player.contentWindow?.__betaPlayerDebug,liquidReady:!!liquid.contentWindow?.__betaV40,selected:!!localStorage.getItem('beta.liquid.selection.v1')});
+})();
+</script></body></html>
